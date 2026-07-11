@@ -32,9 +32,7 @@ _LOGGER: logging.Logger = logging.getLogger(__package__)
 
 def _enabled_platforms(entry: ConfigEntry) -> list[str]:
     """Return platforms enabled in the integration options."""
-    return [
-        platform for platform in PLATFORMS if entry.options.get(platform, True)
-    ]
+    return [platform for platform in PLATFORMS if entry.options.get(platform, True)]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:

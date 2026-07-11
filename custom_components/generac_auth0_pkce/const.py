@@ -2,7 +2,7 @@
 # Base component constants
 NAME = "Generac Updated Login"
 DOMAIN = "generac_auth0_pkce"
-VERSION = "0.3.1"
+VERSION = "0.3.2"
 
 ATTRIBUTION = (
     "Data provided by https://app.mobilelinkgen.com/api. "
@@ -47,9 +47,7 @@ AUTH0_TOKEN_URL = "https://auth.ecobee.com/oauth/token"
 AUTH0_CLIENT_ID = "USGUdyxRw1IrbXSY626wXXxZfnbS2R11"
 AUTH0_AUDIENCE = "https://prod.ecobee.com/api/v1"
 AUTH0_SCOPE = "openid email offline_access invoke:api"
-AUTH0_CLIENT_HEADER = (
-    "eyJuYW1lIjoicmVhY3QtbmF0aXZlLWF1dGgwIiwidmVyc2lvbiI6IjUuNC4wIn0="
-)
+AUTH0_CLIENT_HEADER = "eyJuYW1lIjoicmVhY3QtbmF0aXZlLWF1dGgwIiwidmVyc2lvbiI6IjUuNC4wIn0="
 AUTH0_REDIRECT_URI = (
     "com.generac.standbystatus://auth.ecobee.com/android/"
     "com.generac.standbystatus/callback"

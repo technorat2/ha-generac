@@ -24,16 +24,14 @@ class PublicContractTests(unittest.TestCase):
         self.assertEqual(components, ["generac_auth0_pkce"])
 
     def test_manifest(self):
-        manifest = json.loads(
-            (COMPONENT / "manifest.json").read_text(encoding="utf-8")
-        )
+        manifest = json.loads((COMPONENT / "manifest.json").read_text(encoding="utf-8"))
         self.assertEqual(manifest["domain"], COMPONENT.name)
         self.assertEqual(manifest["name"], "Generac Updated Login")
-        self.assertEqual(manifest["version"], "0.3.1")
+        self.assertEqual(manifest["version"], "0.3.2")
         self.assertEqual(manifest["integration_type"], "hub")
         self.assertIn("@technorat2", manifest["codeowners"])
         const_source = (COMPONENT / "const.py").read_text(encoding="utf-8")
-        self.assertIn('VERSION = "0.3.1"', const_source)
+        self.assertIn('VERSION = "0.3.2"', const_source)
 
     def test_auth_refresh_contract(self):
         source = (COMPONENT / "api.py").read_text(encoding="utf-8")
@@ -64,9 +62,11 @@ class PublicContractTests(unittest.TestCase):
             namespace,
         )
         jwt_exp = namespace["_jwt_exp"]
-        payload = base64.urlsafe_b64encode(
-            json.dumps({"exp": 1234567890}).encode("utf-8")
-        ).decode("ascii").rstrip("=")
+        payload = (
+            base64.urlsafe_b64encode(json.dumps({"exp": 1234567890}).encode("utf-8"))
+            .decode("ascii")
+            .rstrip("=")
+        )
         self.assertEqual(jwt_exp(f"header.{payload}.signature"), 1234567890.0)
         self.assertIsNone(jwt_exp("not-a-jwt"))
         self.assertIsNone(jwt_exp("header.!!!.signature"))
@@ -100,8 +100,7 @@ class PublicContractTests(unittest.TestCase):
             if (
                 isinstance(node, ast.Assign)
                 and any(
-                    isinstance(target, ast.Name)
-                    and target.id == "_ENTITY_WORDS"
+                    isinstance(target, ast.Name) and target.id == "_ENTITY_WORDS"
                     for target in node.targets
                 )
             )

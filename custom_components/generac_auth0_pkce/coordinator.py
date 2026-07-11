@@ -19,9 +19,7 @@ _LOGGER: logging.Logger = logging.getLogger(__package__)
 class GeneracDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Item]]):
     """Class to manage fetching data from the API."""
 
-    def __init__(
-        self, hass: HomeAssistant, client: GeneracApiClient
-    ) -> None:
+    def __init__(self, hass: HomeAssistant, client: GeneracApiClient) -> None:
         """Initialize."""
         self.api = client
         self.is_online = False
@@ -39,11 +37,15 @@ class GeneracDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Item]]):
             return items
         except CannotConnectException as exception:
             self.is_online = False
-            raise UpdateFailed("Unable to connect to Generac Mobile Link") from exception
+            raise UpdateFailed(
+                "Unable to connect to Generac Mobile Link"
+            ) from exception
         except SessionExpiredException as exception:
             self.is_online = False
             raise UpdateFailed("Generac Mobile Link session expired") from exception
         except Exception as exception:
             self.is_online = False
             _LOGGER.exception("Unexpected error refreshing Generac Mobile Link data")
-            raise UpdateFailed("Unexpected error refreshing Generac data") from exception
+            raise UpdateFailed(
+                "Unexpected error refreshing Generac data"
+            ) from exception

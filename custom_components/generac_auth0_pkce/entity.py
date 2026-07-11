@@ -48,7 +48,9 @@ def parse_entity_name(entity_name: str) -> str:
         words = words[len(domain_words) :]
     if words and words[0].isdigit():
         words = words[1:]
-    return " ".join(_ENTITY_WORDS.get(word.lower(), word.capitalize()) for word in words)
+    return " ".join(
+        _ENTITY_WORDS.get(word.lower(), word.capitalize()) for word in words
+    )
 
 
 _EMPTY_ITEM = Item(apparatus=Apparatus(), apparatusDetail=ApparatusDetail(), empty=True)

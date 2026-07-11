@@ -19,6 +19,8 @@ import aiohttp
 from bs4 import BeautifulSoup
 from dacite import from_dict
 
+from .const import API_BASE
+from .const import API_V5_BASE
 from .const import AUTH0_AUDIENCE
 from .const import AUTH0_AUTHORIZE_URL
 from .const import AUTH0_CLIENT_HEADER
@@ -29,8 +31,6 @@ from .const import AUTH0_SIGN_IN
 from .const import AUTH0_TOKEN_URL
 from .const import AUTH_MODE_PKCE
 from .const import AUTH_MODE_WEB_COOKIE
-from .const import API_BASE
-from .const import API_V5_BASE
 from .const import CONF_AUTH_MODE
 from .const import MOBILE_API_USER_AGENT
 from .models import Apparatus
@@ -182,7 +182,9 @@ class Auth0PkceSession:
                     allow_redirects=False,
                 )
             except aiohttp.ClientError as err:
-                raise CannotConnectException("Auth0 hosted login submit failed") from err
+                raise CannotConnectException(
+                    "Auth0 hosted login submit failed"
+                ) from err
             if response.status >= 400:
                 page = await response.text()
                 response.release()
@@ -200,9 +202,7 @@ class Auth0PkceSession:
                 redirect_url = urljoin(str(response.url), location)
                 response.release()
                 try:
-                    response = await session.get(
-                        redirect_url, allow_redirects=False
-                    )
+                    response = await session.get(redirect_url, allow_redirects=False)
                 except aiohttp.ClientError as err:
                     raise CannotConnectException(
                         "Auth0 hosted login redirect failed"
@@ -212,7 +212,9 @@ class Auth0PkceSession:
         raise CannotConnectException("Auth0 hosted login did not return a callback URL")
 
     @staticmethod
-    def _hosted_form_data(form: Any, username: str, password: str) -> list[tuple[str, str]]:
+    def _hosted_form_data(
+        form: Any, username: str, password: str
+    ) -> list[tuple[str, str]]:
         form_data = []
         for input_element in form.select("input[name]"):
             name = input_element.attrs["name"]
@@ -463,9 +465,13 @@ class GeneracApiClient:
         except CannotConnectException:
             raise
         except aiohttp.ClientError as exception:
-            raise CannotConnectException("Unable to reach Mobile Link API") from exception
+            raise CannotConnectException(
+                "Unable to reach Mobile Link API"
+            ) from exception
         except (TypeError, ValueError) as exception:
-            raise CannotConnectException("Mobile Link API returned invalid JSON") from exception
+            raise CannotConnectException(
+                "Mobile Link API returned invalid JSON"
+            ) from exception
 
     @property
     def headers(self) -> dict[str, str]:
@@ -531,7 +537,9 @@ class GeneracApiClient:
         """Refresh Auth0 tokens when token auth is active."""
         async with self._refresh_lock:
             if not self.refresh_token:
-                _LOGGER.warning("Auth0 token refresh skipped because no refresh token is stored")
+                _LOGGER.warning(
+                    "Auth0 token refresh skipped because no refresh token is stored"
+                )
                 return False
 
             try:
@@ -756,7 +764,9 @@ class GeneracApiClient:
                 allow_redirects=True,
             )
         except aiohttp.ClientError as exception:
-            raise CannotConnectException("Mobile Link login submit failed") from exception
+            raise CannotConnectException(
+                "Mobile Link login submit failed"
+            ) from exception
 
         if login_response.status >= 400:
             page = await login_response.text()
@@ -769,9 +779,7 @@ class GeneracApiClient:
         return login_response
 
     @staticmethod
-    def _form_value(
-        name: str, input_element: Any, overrides: Mapping[str, str]
-    ) -> str:
+    def _form_value(name: str, input_element: Any, overrides: Mapping[str, str]) -> str:
         field_type = input_element.attrs.get("type", "").lower()
         lower_name = name.lower()
         if name in overrides:

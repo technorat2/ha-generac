@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.2 - 2026-07-11
+
+- Fix the options flow for current Home Assistant versions by initializing the
+  base `OptionsFlow` class instead of assigning its read-only `config_entry`.
+
 ## 0.3.1 - 2026-07-11
 
 - Align Auth0 token expiry and refresh recovery with the Mobile Link APK.

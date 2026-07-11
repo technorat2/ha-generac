@@ -86,7 +86,9 @@ class GeneracFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             _LOGGER.debug("Unable to connect to Generac Mobile Link: %s", e)
             return "cannot_connect"
         except Exception as e:  # pylint: disable=broad-except
-            _LOGGER.exception("Unexpected error while testing Generac credentials: %s", e)
+            _LOGGER.exception(
+                "Unexpected error while testing Generac credentials: %s", e
+            )
             return "internal"
 
 

@@ -72,7 +72,11 @@ def get_detail_property_value(item: Item, property_type: int) -> Any:
     if item.apparatusDetail.properties is None:
         return None
     return next(
-        (prop.value for prop in item.apparatusDetail.properties if prop.type == property_type),
+        (
+            prop.value
+            for prop in item.apparatusDetail.properties
+            if prop.type == property_type
+        ),
         None,
     )
 

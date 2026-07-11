@@ -3,20 +3,20 @@ import json
 import logging
 from typing import Any
 from typing import Mapping
-from urllib.parse import urljoin
 from urllib.parse import urlencode
+from urllib.parse import urljoin
 
 import aiohttp
 from bs4 import BeautifulSoup
 from dacite import from_dict
 
+from .const import API_BASE
 from .const import AUTH0_AUDIENCE
 from .const import AUTH0_CLIENT_ID
 from .const import AUTH0_PASSWORD_REALMS
 from .const import AUTH0_SCOPE
 from .const import AUTH0_SIGN_IN
 from .const import AUTH0_TOKEN_URL
-from .const import API_BASE
 from .models import Apparatus
 from .models import ApparatusDetail
 from .models import Item
@@ -102,7 +102,9 @@ class GeneracApiClient:
 
     async def get_endpoint(self, endpoint: str):
         try:
-            response = await self._session.get(API_BASE + endpoint, headers=self.headers)
+            response = await self._session.get(
+                API_BASE + endpoint, headers=self.headers
+            )
             if response.status == 204:
                 # no data
                 return None
@@ -352,9 +354,7 @@ class GeneracApiClient:
         return login_response
 
     @staticmethod
-    def _form_value(
-        name: str, input_element: Any, overrides: Mapping[str, str]
-    ) -> str:
+    def _form_value(name: str, input_element: Any, overrides: Mapping[str, str]) -> str:
         field_type = input_element.attrs.get("type", "").lower()
         lower_name = name.lower()
         if name in overrides:

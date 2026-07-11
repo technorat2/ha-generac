@@ -45,16 +45,12 @@ class GeneracFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             username = user_input[CONF_USERNAME].strip()
-            result = await self._exchange_and_test(
-                username, user_input[CONF_PASSWORD]
-            )
+            result = await self._exchange_and_test(username, user_input[CONF_PASSWORD])
             error = result.get("error")
             if error is None:
                 await self.async_set_unique_id(username.casefold())
                 self._abort_if_unique_id_configured()
-                return self.async_create_entry(
-                    title=username, data=result
-                )
+                return self.async_create_entry(title=username, data=result)
             else:
                 self._errors["base"] = error
 
@@ -80,9 +76,7 @@ class GeneracFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             errors=self._errors,
         )
 
-    async def _exchange_and_test(
-        self, username: str, password: str
-    ) -> dict[str, Any]:
+    async def _exchange_and_test(self, username: str, password: str) -> dict[str, Any]:
         """Run Auth0 PKCE hosted login, test tokens, and return config data."""
         session = async_create_clientsession(self.hass)
         try:
@@ -101,7 +95,9 @@ class GeneracFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             if data is None:
                 raise CannotConnectException("Generac Mobile Link returned no data")
             if not client.auth_method.startswith("auth0"):
-                raise SessionExpiredException("Auth0 login did not produce bearer access")
+                raise SessionExpiredException(
+                    "Auth0 login did not produce bearer access"
+                )
             return {
                 CONF_AUTH_MODE: AUTH_MODE_PKCE,
                 CONF_USERNAME: username,
@@ -148,7 +144,9 @@ class GeneracFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             _LOGGER.debug("Generac Mobile Link rejected API session: %s", e)
             return {"error": "cannot_connect"}
         except Exception as e:  # pylint: disable=broad-except
-            _LOGGER.exception("Unexpected error while testing Generac Updated Login: %s", e)
+            _LOGGER.exception(
+                "Unexpected error while testing Generac Updated Login: %s", e
+            )
             return {"error": "internal"}
 
 
@@ -157,7 +155,7 @@ class GeneracOptionsFlowHandler(config_entries.OptionsFlow):
 
     def __init__(self, config_entry):
         """Initialize HACS options flow."""
-        self.config_entry = config_entry
+        super().__init__(config_entry)
         self.options = dict(config_entry.options)
 
     async def async_step_init(self, user_input=None):  # pylint: disable=unused-argument
