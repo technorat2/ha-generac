@@ -1,5 +1,5 @@
 {
-  "domain": "generac_auth0_pkce",
+  "domain": "generac",
   "name": "Generac Updated Login",
   "codeowners": ["@technorat2"],
   "config_flow": true,
@@ -9,5 +9,5 @@
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/technorat2/ha-generac/issues",
   "requirements": ["beautifulsoup4==4.12.3", "dacite==1.8.1"],
-  "version": "0.3.2"
+  "version": "0.4.0"
 }

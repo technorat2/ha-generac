@@ -130,22 +130,22 @@ from bs4 import BeautifulSoup
 
 
 REPO_ROOT = Path(__file__).resolve().parent
-GENERAC_DIR = REPO_ROOT / "custom_components" / "generac_auth0_pkce"
+GENERAC_DIR = REPO_ROOT / "custom_components" / "generac"
 STATE_FILE = REPO_ROOT / ".generac_pkce_state.json"
 
 custom_components_pkg = types.ModuleType("custom_components")
 custom_components_pkg.__path__ = [str(REPO_ROOT / "custom_components")]
-generac_pkg = types.ModuleType("custom_components.generac_auth0_pkce")
+generac_pkg = types.ModuleType("custom_components.generac")
 generac_pkg.__path__ = [str(GENERAC_DIR)]
 sys.modules["custom_components"] = custom_components_pkg
-sys.modules["custom_components.generac_auth0_pkce"] = generac_pkg
+sys.modules["custom_components.generac"] = generac_pkg
 
 api_spec = importlib.util.spec_from_file_location(
-    "custom_components.generac_auth0_pkce.api",
+    "custom_components.generac.api",
     GENERAC_DIR / "api.py",
 )
 api_module = importlib.util.module_from_spec(api_spec)
-sys.modules["custom_components.generac_auth0_pkce.api"] = api_module
+sys.modules["custom_components.generac.api"] = api_module
 api_spec.loader.exec_module(api_module)
 
 Auth0PkceSession = api_module.Auth0PkceSession

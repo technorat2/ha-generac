@@ -28,7 +28,7 @@ Enable only the targeted integration logger when reproducing the problem:
 ```yaml
 logger:
   logs:
-    custom_components.generac_auth0_pkce: debug
+    custom_components.generac: debug
 ```
 
 Paste relevant logs below after removing usernames, passwords, tokens,

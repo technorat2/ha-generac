@@ -12,8 +12,8 @@ import aiohttp
 
 
 REPO_ROOT = Path(__file__).resolve().parent
-GENERAC_DIR = REPO_ROOT / "custom_components" / "generac_auth0_pkce"
-PACKAGE_NAME = "custom_components.generac_auth0_pkce"
+GENERAC_DIR = REPO_ROOT / "custom_components" / "generac"
+PACKAGE_NAME = "custom_components.generac"
 
 custom_components_pkg = types.ModuleType("custom_components")
 custom_components_pkg.__path__ = [str(REPO_ROOT / "custom_components")]

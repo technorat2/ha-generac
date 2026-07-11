@@ -33,10 +33,10 @@ The integration is not affiliated with or endorsed by Generac.
 
 ## Manual Installation
 
-Copy the contents of `custom_components/generac_auth0_pkce/` into:
+Copy the contents of `custom_components/generac/` into:
 
 ```text
-<home-assistant-config>/custom_components/generac_auth0_pkce/
+<home-assistant-config>/custom_components/generac/
 ```
 
 Restart Home Assistant, then add **Generac Updated Login** through the UI. Do
@@ -45,11 +45,16 @@ reference and testing only.
 
 ## Existing Configurations
 
-The canonical domain is `generac_auth0_pkce`. Its domain and unique IDs are
-kept stable so existing installations of this fork retain their entity history.
-The original `generac` integration and the older `generac_updated` copy are
-separate domains and are not migrated automatically. Remove duplicate entries
-only after confirming which integration is providing your entities.
+This fork intentionally uses the original `generac` Home Assistant domain, so
+it is a replacement for the original integration rather than a separate
+parallel integration. Existing original `generac` entries can generally be
+updated in place while retaining their entity IDs and history.
+
+The former `generac_auth0_pkce` package was an experimental domain used during
+development. Home Assistant cannot automatically migrate that domain to
+`generac`; users who installed it must remove that old entry and add
+**Generac Updated Login** once after installing this replacement. Do not install
+the `legacy/generac_updated` directory.
 
 ## Authentication
 
@@ -81,7 +86,7 @@ Enable targeted logging in `configuration.yaml`:
 ```yaml
 logger:
   logs:
-    custom_components.generac_auth0_pkce: debug
+    custom_components.generac: debug
 ```
 
 Restart or reload the integration after changing the logger. When sharing logs,
@@ -122,7 +127,7 @@ delivers updates to this integration itself.
 
 For each release:
 
-1. Bump the SemVer `version` in `custom_components/generac_auth0_pkce/manifest.json`
+1. Bump the SemVer `version` in `custom_components/generac/manifest.json`
    and `const.py`.
 2. Update `CHANGELOG.md`.
 3. Run the standalone tests, unit tests, pre-commit, HACS validation, and

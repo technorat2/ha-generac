@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.0 - 2026-07-11
+
+- Restore the original `generac` Home Assistant domain so this fork is a true
+  replacement for the original integration.
+- Keep the user-facing integration name as **Generac Updated Login**.
+- Document the one-time removal and re-add required for the former
+  `generac_auth0_pkce` experimental domain.
+
 ## 0.3.2 - 2026-07-11
 
 - Fix the options flow for current Home Assistant versions by initializing the

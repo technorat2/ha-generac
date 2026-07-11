@@ -15,7 +15,7 @@ web-cookie bridge retained as an authentication fallback.
 Manual installation uses:
 
 ```text
-custom_components/generac_auth0_pkce/
+custom_components/generac/
 ```
 
 Configuration is completed in the Home Assistant UI. No manual cookie

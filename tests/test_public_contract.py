@@ -9,7 +9,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-COMPONENT = ROOT / "custom_components" / "generac_auth0_pkce"
+COMPONENT = ROOT / "custom_components" / "generac"
 
 
 class PublicContractTests(unittest.TestCase):
@@ -21,17 +21,17 @@ class PublicContractTests(unittest.TestCase):
             for path in (ROOT / "custom_components").iterdir()
             if path.is_dir() and (path / "manifest.json").is_file()
         )
-        self.assertEqual(components, ["generac_auth0_pkce"])
+        self.assertEqual(components, ["generac"])
 
     def test_manifest(self):
         manifest = json.loads((COMPONENT / "manifest.json").read_text(encoding="utf-8"))
         self.assertEqual(manifest["domain"], COMPONENT.name)
         self.assertEqual(manifest["name"], "Generac Updated Login")
-        self.assertEqual(manifest["version"], "0.3.2")
+        self.assertEqual(manifest["version"], "0.4.0")
         self.assertEqual(manifest["integration_type"], "hub")
         self.assertIn("@technorat2", manifest["codeowners"])
         const_source = (COMPONENT / "const.py").read_text(encoding="utf-8")
-        self.assertIn('VERSION = "0.3.2"', const_source)
+        self.assertIn('VERSION = "0.4.0"', const_source)
 
     def test_auth_refresh_contract(self):
         source = (COMPONENT / "api.py").read_text(encoding="utf-8")
@@ -109,7 +109,7 @@ class PublicContractTests(unittest.TestCase):
                 and node.name in {"_camel_to_snake", "parse_entity_name"}
             )
         ]
-        namespace = {"DEFAULT_NAME": "generac_auth0_pkce", "re": re}
+        namespace = {"DEFAULT_NAME": "generac", "re": re}
         source_path = COMPONENT / "entity.py"
         exec(
             compile(
@@ -121,11 +121,11 @@ class PublicContractTests(unittest.TestCase):
         )
         parse_entity_name = namespace["parse_entity_name"]
         self.assertEqual(
-            parse_entity_name("generac_auth0_pkce_2413103_device_type"),
+            parse_entity_name("generac_2413103_device_type"),
             "Device Type",
         )
         self.assertEqual(
-            parse_entity_name("generac_auth0_pkce_2413103_panel_id"),
+            parse_entity_name("generac_2413103_panel_id"),
             "Panel ID",
         )
 

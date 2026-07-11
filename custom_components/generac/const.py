@@ -1,8 +1,8 @@
 """Constants for Generac Updated Login."""
 # Base component constants
 NAME = "Generac Updated Login"
-DOMAIN = "generac_auth0_pkce"
-VERSION = "0.3.2"
+DOMAIN = "generac"
+VERSION = "0.4.0"
 
 ATTRIBUTION = (
     "Data provided by https://app.mobilelinkgen.com/api. "

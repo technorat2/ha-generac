@@ -2,7 +2,7 @@
   "_output_dir": "",
   "_template": "gh:oncleben31/cookiecutter-homeassistant-custom-component",
   "class_name_prefix": "Generac",
-  "domain_name": "generac_auth0_pkce",
+  "domain_name": "generac",
   "friendly_name": "Generac Updated Login",
   "github_user": "technorat2",
   "project_name": "ha-generac",
