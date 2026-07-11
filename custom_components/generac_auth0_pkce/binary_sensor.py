@@ -1,0 +1,106 @@
+"""Binary sensor platform for generac."""
+from typing import Type
+
+from homeassistant.components.binary_sensor import BinarySensorDeviceClass
+from homeassistant.components.binary_sensor import BinarySensorEntity
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
+
+from .const import DOMAIN
+from .coordinator import GeneracDataUpdateCoordinator
+from .entity import GeneracEntity
+
+
+async def async_setup_entry(
+    hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
+):
+    """Setup binary_sensor platform."""
+    coordinator: GeneracDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
+    data = coordinator.data
+    if isinstance(data, dict):
+        async_add_entities(
+            sensor(coordinator, entry, generator_id, item)
+            for generator_id, item in data.items()
+            for sensor in sensors()
+        )
+
+
+def sensors() -> list[Type[GeneracEntity]]:
+    return [
+        GeneracConnectedSensor,
+        GeneracConnectingSensor,
+        GeneracMaintenanceAlertSensor,
+        GeneracWarningSensor,
+    ]
+
+
+class GeneracConnectedSensor(GeneracEntity, BinarySensorEntity):
+    """generac binary_sensor class."""
+
+    @property
+    def name(self):
+        """Return the name of the binary_sensor."""
+        return self._friendly_name()
+
+    @property
+    def device_class(self):
+        """Return the class of this binary_sensor."""
+        return BinarySensorDeviceClass.CONNECTIVITY
+
+    @property
+    def is_on(self):
+        """Return true if the binary_sensor is on."""
+        return self.aparatus_detail.isConnected
+
+
+class GeneracConnectingSensor(GeneracEntity, BinarySensorEntity):
+    """True while the Mobile Link device is connecting."""
+
+    @property
+    def name(self):
+        """Return the name of the binary_sensor."""
+        return self._friendly_name()
+
+    @property
+    def is_on(self):
+        """Return true if the binary_sensor is on."""
+        return self.aparatus_detail.isConnecting
+
+
+class GeneracMaintenanceAlertSensor(GeneracEntity, BinarySensorEntity):
+    """generac binary_sensor class."""
+
+    @property
+    def name(self):
+        """Return the name of the binary_sensor."""
+        return self._friendly_name()
+
+    @property
+    def device_class(self):
+        """Return the class of this binary_sensor."""
+        return BinarySensorDeviceClass.SAFETY
+
+    @property
+    def is_on(self):
+        """Return true if the binary_sensor is on."""
+        return self.aparatus_detail.hasMaintenanceAlert
+
+
+class GeneracWarningSensor(GeneracEntity, BinarySensorEntity):
+    """generac binary_sensor class."""
+
+    @property
+    def name(self):
+        """Return the name of the binary_sensor."""
+        return self._friendly_name()
+
+    @property
+    def device_class(self):
+        """Return the class of this binary_sensor."""
+        return BinarySensorDeviceClass.SAFETY
+
+    @property
+    def is_on(self):
+        """Return true if the binary_sensor is on."""
+        return self.aparatus_detail.showWarning

@@ -6,6 +6,7 @@ from homeassistant import config_entries
 from homeassistant.core import callback
 from homeassistant.helpers.aiohttp_client import async_create_clientsession
 
+from .api import CannotConnectException
 from .api import GeneracApiClient
 from .api import InvalidCredentialsException
 from .const import CONF_PASSWORD
@@ -60,7 +61,10 @@ class GeneracFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         return self.async_show_form(
             step_id="user",
             data_schema=vol.Schema(
-                {vol.Required(CONF_USERNAME): str, vol.Required(CONF_PASSWORD): str}
+                {
+                    vol.Required(CONF_USERNAME): str,
+                    vol.Required(CONF_PASSWORD): str,
+                }
             ),
             errors=self._errors,
         )
@@ -70,13 +74,19 @@ class GeneracFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         try:
             session = async_create_clientsession(self.hass)
             client = GeneracApiClient(username, password, session)
-            await client.async_get_data()
+            data = await client.async_get_data()
+            if data is None:
+                _LOGGER.debug("Generac Mobile Link returned no API data")
+                return "cannot_connect"
             return None
-        except InvalidCredentialsException as e:  # pylint: disable=broad-except
-            _LOGGER.debug("ERROR in testing credentials: %s", e)
+        except InvalidCredentialsException as e:
+            _LOGGER.debug("Generac Mobile Link rejected credentials: %s", e)
             return "auth"
+        except CannotConnectException as e:
+            _LOGGER.debug("Unable to connect to Generac Mobile Link: %s", e)
+            return "cannot_connect"
         except Exception as e:  # pylint: disable=broad-except
-            _LOGGER.debug("ERROR: %s", e)
+            _LOGGER.exception("Unexpected error while testing Generac credentials: %s", e)
             return "internal"
 
 

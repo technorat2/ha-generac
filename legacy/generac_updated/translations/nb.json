@@ -2,7 +2,7 @@
   "config": {
     "step": {
       "user": {
-        "title": "generac",
+        "title": "Generac Updated Login",
         "description": "Hvis du trenger hjep til konfigurasjon ta en titt her: https://github.com/bentekkie/ha-generac",
         "data": {
           "username": "Brukernavn",
@@ -11,7 +11,9 @@
       }
     },
     "error": {
-      "auth": "Brukernavn/Passord er feil."
+      "auth": "Brukernavn/Passord er feil.",
+      "cannot_connect": "Kan ikke koble til Generac Mobile Link.",
+      "internal": "Intern feil. Se Home Assistant-loggene."
     },
     "abort": {
       "single_instance_allowed": "Denne integrasjonen kan kun konfigureres en gang."
@@ -22,8 +24,9 @@
       "user": {
         "data": {
           "binary_sensor": "Binær sensor aktivert",
+          "image": "Bilde aktivert",
           "sensor": "Sensor aktivert",
-          "switch": "Bryter aktivert"
+          "weather": "Vær aktivert"
         }
       }
     }

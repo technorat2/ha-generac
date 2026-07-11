@@ -1,0 +1,31 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Generac Updated Login",
+        "description": "Connect through Auth0 authorization-code PKCE. If PKCE fails, setup falls back to the Mobile Link web-cookie bridge.",
+        "data": {
+          "username": "Username",
+          "password": "Password"
+        }
+      }
+    },
+    "error": {
+      "auth": "Username/Password is wrong.",
+      "cannot_connect": "Unable to connect to Generac Mobile Link.",
+      "internal": "Internal Error, file an issue at https://github.com/technorat2/ha-generac/issues."
+    }
+  },
+  "options": {
+    "step": {
+      "user": {
+        "data": {
+          "binary_sensor": "Binary sensor enabled",
+          "image": "Image enabled",
+          "sensor": "Sensor enabled",
+          "weather": "Weather enabled"
+        }
+      }
+    }
+  }
+}

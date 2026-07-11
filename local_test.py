@@ -1,15 +1,36 @@
 import asyncio
 import dataclasses
+import importlib.util
 import json
 import logging
 import os
+import sys
+import types
+from pathlib import Path
 
 import aiohttp
-from custom_components.generac.api import GeneracApiClient
+
+
+REPO_ROOT = Path(__file__).resolve().parent
+GENERAC_DIR = REPO_ROOT / "custom_components" / "generac_auth0_pkce"
+PACKAGE_NAME = "custom_components.generac_auth0_pkce"
+
+custom_components_pkg = types.ModuleType("custom_components")
+custom_components_pkg.__path__ = [str(REPO_ROOT / "custom_components")]
+generac_pkg = types.ModuleType(PACKAGE_NAME)
+generac_pkg.__path__ = [str(GENERAC_DIR)]
+sys.modules["custom_components"] = custom_components_pkg
+sys.modules[PACKAGE_NAME] = generac_pkg
+
+api_spec = importlib.util.spec_from_file_location(
+    f"{PACKAGE_NAME}.api", GENERAC_DIR / "api.py"
+)
+api_module = importlib.util.module_from_spec(api_spec)
+sys.modules[f"{PACKAGE_NAME}.api"] = api_module
+api_spec.loader.exec_module(api_module)
+GeneracApiClient = api_module.GeneracApiClient
 
 logging.basicConfig(level=logging.DEBUG)
-
-jar = aiohttp.CookieJar(unsafe=True)
 
 
 class EnhancedJSONEncoder(json.JSONEncoder):
@@ -20,7 +41,7 @@ class EnhancedJSONEncoder(json.JSONEncoder):
 
 
 async def main():
-    async with aiohttp.ClientSession(cookie_jar=jar) as session:
+    async with aiohttp.ClientSession() as session:
         api = GeneracApiClient(
             os.environ["GENERAC_USER"], os.environ["GENERAC_PASS"], session
         )

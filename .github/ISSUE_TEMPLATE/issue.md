@@ -1,40 +1,45 @@
 ---
-name: Issue
-about: Create a report to help us improve
+name: Bug report
+about: Report a reproducible problem with the integration
+title: ""
+labels: bug
 ---
 
-<!-- Before you open a new issue, search through the existing issues to see if others have had the same problem.
+## Versions
 
-Issues not containing the minimum requirements will be closed:
+- Home Assistant:
+- Generac Updated Login:
+- Installation method: HACS / manual
 
-- Issues without a description (using the header is not good enough) will be closed.
-- Issues without debug logging will be closed.
-- Issues without configuration will be closed
+## Describe the problem
 
--->
+What happened, and what did you expect to happen?
 
-## Version of the custom_component
+## Authentication path
 
-<!-- If you are not using the newest version, download and try that before opening an issue
-If you are unsure about the version check the const.py file.
--->
+- [ ] Auth0 PKCE
+- [ ] Web-cookie fallback
+- [ ] Unknown
 
-## Configuration
+## Logs
+
+Enable only the targeted integration logger when reproducing the problem:
 
 ```yaml
-Add your logs here.
+logger:
+  logs:
+    custom_components.generac_auth0_pkce: debug
 ```
 
-## Describe the bug
-
-A clear and concise description of what the bug is.
-
-## Debug log
-
-<!-- To enable debug logs check this https://www.home-assistant.io/components/logger/ -->
+Paste relevant logs below after removing usernames, passwords, tokens,
+callback URLs, cookies, addresses, serial numbers, and other personal data.
 
 ```text
-
-Add your logs here.
-
+Paste redacted logs here.
 ```
+
+## Reproduction steps
+
+1.
+2.
+3.

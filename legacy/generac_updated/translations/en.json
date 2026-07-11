@@ -2,8 +2,8 @@
   "config": {
     "step": {
       "user": {
-        "title": "generac",
-        "description": "If you need help with the configuration have a look here: https://github.com/bentekkie/ha-generac",
+        "title": "Generac Updated Login",
+        "description": "Connect to Generac Mobile Link using the updated login flow.",
         "data": {
           "username": "Username",
           "password": "Password"
@@ -12,6 +12,7 @@
     },
     "error": {
       "auth": "Username/Password is wrong.",
+      "cannot_connect": "Unable to connect to Generac Mobile Link.",
       "internal": "Internal Error, file an issue at https://github.com/bentekkie/ha-generac."
     },
     "abort": {
@@ -23,8 +24,9 @@
       "user": {
         "data": {
           "binary_sensor": "Binary sensor enabled",
+          "image": "Image enabled",
           "sensor": "Sensor enabled",
-          "switch": "Switch enabled"
+          "weather": "Weather enabled"
         }
       }
     }

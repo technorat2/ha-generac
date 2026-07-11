@@ -1,0 +1,31 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Generac Updated Login",
+        "description": "Connexion avec le flux Auth0 authorization-code PKCE. Si PKCE échoue, la configuration utilise le pont web-cookie Mobile Link.",
+        "data": {
+          "username": "Identifiant",
+          "password": "Mot de passe"
+        }
+      }
+    },
+    "error": {
+      "auth": "Identifiant ou mot de passe erroné.",
+      "cannot_connect": "Impossible de se connecter à Generac Mobile Link.",
+      "internal": "Erreur interne. Consultez les journaux Home Assistant."
+    }
+  },
+  "options": {
+    "step": {
+      "user": {
+        "data": {
+          "binary_sensor": "Capteur binaire activé",
+          "image": "Image activée",
+          "sensor": "Capteur activé",
+          "weather": "Météo activée"
+        }
+      }
+    }
+  }
+}

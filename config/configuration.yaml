@@ -12,4 +12,4 @@ http:
 logger:
   default: info
   logs:
-    custom_components.generac: debug
+    custom_components.generac_auth0_pkce: debug

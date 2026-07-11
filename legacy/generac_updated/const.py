@@ -1,13 +1,13 @@
-"""Constants for generac."""
+"""Constants for Generac Updated Login."""
 # Base component constants
-NAME = "generac"
-DOMAIN = "generac"
+NAME = "Generac Updated Login"
+DOMAIN = "generac_updated"
 DOMAIN_DATA = f"{DOMAIN}_data"
-VERSION = "0.0.0"
+VERSION = "0.1.0"
 
 ATTRIBUTION = (
     "Data provided by https://app.mobilelinkgen.com/api. "
-    "This is reversed engineered. Heavily inspired by "
+    "This is reverse engineered. Heavily inspired by "
     "https://github.com/digitaldan/openhab-addons/blob/generac-2.0/bundles/org.openhab.binding.generacmobilelink/README.md"
 )
 ISSUE_URL = "https://github.com/bentekkie/ha-generac/issues"
@@ -41,4 +41,9 @@ If you have any issues with this you need to open an issue here:
 
 
 API_BASE = "https://app.mobilelinkgen.com/api"
-LOGIN_BASE = "https://generacconnectivity.b2clogin.com/generacconnectivity.onmicrosoft.com/B2C_1A_MobileLink_SignIn"
+AUTH0_SIGN_IN = f"{API_BASE}/Auth/Auth0/SignIn"
+AUTH0_TOKEN_URL = "https://auth.ecobee.com/oauth/token"
+AUTH0_CLIENT_ID = "USGUdyxRw1IrbXSY626wXXxZfnbS2R11"
+AUTH0_AUDIENCE = "https://prod.ecobee.com/api/v1"
+AUTH0_SCOPE = "openid profile offline_access"
+AUTH0_PASSWORD_REALMS = ("Username-Password-Authentication",)

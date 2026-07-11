@@ -2,7 +2,7 @@
   "config": {
     "step": {
       "user": {
-        "title": "generac",
+        "title": "Generac Updated Login",
         "description": "Si vous avez besoin d'aide pour la configuration, regardez ici: https://github.com/bentekkie/ha-generac",
         "data": {
           "username": "Identifiant",
@@ -11,7 +11,9 @@
       }
     },
     "error": {
-      "auth": "Identifiant ou mot de passe erroné."
+      "auth": "Identifiant ou mot de passe erroné.",
+      "cannot_connect": "Impossible de se connecter à Generac Mobile Link.",
+      "internal": "Erreur interne. Consultez les journaux Home Assistant."
     },
     "abort": {
       "single_instance_allowed": "Une seule instance est autorisée."
@@ -22,8 +24,9 @@
       "user": {
         "data": {
           "binary_sensor": "Capteur binaire activé",
+          "image": "Image activée",
           "sensor": "Capteur activé",
-          "switch": "Interrupteur activé"
+          "weather": "Météo activée"
         }
       }
     }

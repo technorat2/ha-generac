@@ -1,11 +1,11 @@
 {
-  "_output_dir": "/Users/bentekkie/workspace/generac",
+  "_output_dir": "",
   "_template": "gh:oncleben31/cookiecutter-homeassistant-custom-component",
   "class_name_prefix": "Generac",
-  "domain_name": "generac",
-  "friendly_name": "generac",
-  "github_user": "bentekkie",
-  "project_name": "generac",
+  "domain_name": "generac_auth0_pkce",
+  "friendly_name": "Generac Updated Login",
+  "github_user": "technorat2",
+  "project_name": "ha-generac",
   "test_suite": "no",
   "version": "0.0.0"
 }
