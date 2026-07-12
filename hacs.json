@@ -1,5 +1,6 @@
 {
   "name": "Generac MobileLink",
   "hacs": "1.6.0",
-  "homeassistant": "2024.12.5"
+  "homeassistant": "2024.12.5",
+  "hide_default_branch": true
 }
