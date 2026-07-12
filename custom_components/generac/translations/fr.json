@@ -2,8 +2,8 @@
   "config": {
     "step": {
       "user": {
-        "title": "Generac MobileLink",
-        "description": "Connectez-vous avec votre compte Mobile Link via Auth0 PKCE/DPoP.",
+        "title": "generac",
+        "description": "Si vous avez besoin d'aide pour la configuration, regardez ici: https://github.com/binarydev/ha-generac",
         "data": {
           "username": "Identifiant",
           "password": "Mot de Passe"
@@ -25,6 +25,7 @@
           "image": "Image activé",
           "scan_interval": "Intervalle d’interrogation en secondes",
           "sensor": "Capteur activé",
+          "switch": "Interrupteur activé",
           "weather": "Capteur météo activé"
         }
       }
