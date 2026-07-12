@@ -3,7 +3,7 @@
 NAME = "Generac MobileLink"
 DOMAIN = "generac"
 DOMAIN_DATA = f"{DOMAIN}_data"
-VERSION = "0.5.0"
+VERSION = "0.5.4"
 
 ATTRIBUTION = (
     "Data provided by https://app.mobilelinkgen.com/api. "

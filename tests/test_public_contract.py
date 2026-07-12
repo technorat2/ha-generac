@@ -28,11 +28,11 @@ class PublicContractTests(unittest.TestCase):
         manifest = json.loads((COMPONENT / "manifest.json").read_text(encoding="utf-8"))
         self.assertEqual(manifest["domain"], COMPONENT.name)
         self.assertEqual(manifest["name"], "Generac MobileLink")
-        self.assertEqual(manifest["version"], "0.5.0")
+        self.assertEqual(manifest["version"], "0.5.4")
         self.assertEqual(manifest["integration_type"], "hub")
         self.assertIn("@technorat2", manifest["codeowners"])
         const_source = (COMPONENT / "const.py").read_text(encoding="utf-8")
-        self.assertIn('VERSION = "0.5.0"', const_source)
+        self.assertIn('VERSION = "0.5.4"', const_source)
         self.assertIn('CONF_DPOP_PEM = "dpop_pem"', const_source)
         self.assertIn("DEFAULT_SCAN_INTERVAL = 900", const_source)
 

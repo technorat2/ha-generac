@@ -9,5 +9,5 @@
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/technorat2/ha-generac/issues",
   "requirements": ["dacite==1.9.2", "cryptography>=41"],
-  "version": "0.5.0"
+  "version": "0.5.4"
 }
