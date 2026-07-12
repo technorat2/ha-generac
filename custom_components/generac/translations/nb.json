@@ -2,12 +2,11 @@
   "config": {
     "step": {
       "user": {
-        "title": "generac",
-        "description": "Hvis du trenger hjep til konfigurasjon ta en titt her: https://github.com/binarydev/ha-generac",
+        "title": "Generac MobileLink",
+        "description": "Logg inn med Mobile Link-kontoen din via Auth0 PKCE/DPoP.",
         "data": {
           "username": "Brukernavn",
-          "password": "Passord",
-          "session_cookie": "Sesjonskake"
+          "password": "Passord"
         }
       }
     },
@@ -26,7 +25,6 @@
           "image": "Bilde aktivert",
           "scan_interval": "Avstemningsintervall i sekunder",
           "sensor": "Sensor aktivert",
-          "switch": "Bryter aktivert",
           "weather": "Værsensor aktivert"
         }
       }
