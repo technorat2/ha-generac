@@ -63,11 +63,6 @@ class GeneracConnectingSensor(GeneracEntity, BinarySensorEntity):
         return self._friendly_name()
 
     @property
-    def device_class(self):
-        """Return the class of this binary_sensor."""
-        return BinarySensorDeviceClass.CONNECTIVITY
-
-    @property
     def is_on(self):
         """Return true if the binary_sensor is on."""
         return self.aparatus_detail.isConnecting
