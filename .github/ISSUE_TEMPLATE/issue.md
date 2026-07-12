@@ -8,7 +8,7 @@ labels: bug
 ## Versions
 
 - Home Assistant:
-- Generac Updated Login:
+- Generac MobileLink:
 - Installation method: HACS / manual
 
 ## Describe the problem
@@ -17,8 +17,10 @@ What happened, and what did you expect to happen?
 
 ## Authentication path
 
-- [ ] Auth0 PKCE
-- [ ] Web-cookie fallback
+- [ ] Auth0 PKCE/DPoP
+- [ ] MFA code
+- [ ] Reauthentication
+- [ ] Auth0 custom prompt
 - [ ] Unknown
 
 ## Logs

@@ -16,14 +16,16 @@ from .models import Item
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ):
-    """Setup weather platform."""
+    """Setup binary_sensor platform."""
     coordinator: GeneracDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
     data = coordinator.data
     if isinstance(data, dict):
         async_add_entities(
-            sensor(coordinator, entry, generator_id, item)
-            for generator_id, item in data.items()
+            sensor(coordinator, entry, device_id, item)
+            for device_id, item in data.items()
             for sensor in sensors(item)
+            if item.apparatus.weather is not None
+            and item.apparatus.weather.iconCode is not None
         )
 
 

@@ -1,11 +1,11 @@
-"""GeneracEntity class"""
+"""Generac entity base classes and friendly-name helpers."""
 import logging
 import re
 from typing import ClassVar
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import callback
-from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import ATTRIBUTION
@@ -34,14 +34,14 @@ _ENTITY_KEY_OVERRIDES = {
 
 
 def _camel_to_snake(value: str) -> str:
-    """Convert a class name fragment into the entity suffix format."""
+    """Convert a class name fragment into an entity suffix."""
     value = re.sub(r"(?<=[A-Z])(?=[A-Z][a-z])", "_", value)
     value = re.sub(r"(?<=[a-z0-9])(?=[A-Z])", "_", value)
     return value.lower()
 
 
 def parse_entity_name(entity_name: str) -> str:
-    """Convert an internal Generac entity name into a readable label."""
+    """Convert an internal entity name into a readable label."""
     words = re.split(r"[_\s-]+", entity_name.strip())
     domain_words = DEFAULT_NAME.split("_")
     if words[: len(domain_words)] == domain_words:
@@ -65,36 +65,36 @@ class GeneracEntity(CoordinatorEntity[GeneracDataUpdateCoordinator]):
         self,
         coordinator: GeneracDataUpdateCoordinator,
         config_entry: ConfigEntry,
-        generator_id: str,
+        device_id: str,
         item: Item,
     ):
         super().__init__(coordinator)
         self.config_entry = config_entry
-        self.generator_id = generator_id
+        self.device_id = device_id
         self.item = item
 
     @property
     def unique_id(self):
         """Return a unique ID to use for this entity."""
-        return f"{self.config_entry.entry_id}_{self.generator_id}_{self._legacy_name}"
+        return f"{self.config_entry.entry_id}_{self.device_id}_{self._technical_name}"
 
     @property
-    def _legacy_name(self) -> str:
-        """Return the pre-existing internal name used by the entity registry."""
+    def _technical_name(self) -> str:
+        """Return the stable technical name used by the entity registry."""
         entity_key = self._entity_key or _ENTITY_KEY_OVERRIDES.get(
             type(self).__name__,
             _camel_to_snake(type(self).__name__.removesuffix("Sensor")),
         )
-        return f"{DEFAULT_NAME}_{self.generator_id}_{entity_key}"
+        return f"{DEFAULT_NAME}_{self.device_id}_{entity_key}"
 
     def _friendly_name(self) -> str:
-        """Return the display label derived from the internal entity name."""
-        return parse_entity_name(self._legacy_name)
+        """Return the readable display label for this entity."""
+        return parse_entity_name(self._technical_name)
 
     @property
     def device_info(self):
         return DeviceInfo(
-            identifiers={(DOMAIN, self.generator_id)},
+            identifiers={(DOMAIN, self.device_id)},
             name=self.aparatus.name,
             model=self.aparatus.modelNumber,
             manufacturer="Generac",
@@ -105,7 +105,7 @@ class GeneracEntity(CoordinatorEntity[GeneracDataUpdateCoordinator]):
         """Return the state attributes."""
         return {
             "attribution": ATTRIBUTION,
-            "id": str(self.generator_id),
+            "id": str(self.device_id),
             "integration": DOMAIN,
         }
 
@@ -118,6 +118,10 @@ class GeneracEntity(CoordinatorEntity[GeneracDataUpdateCoordinator]):
             and not self.item.empty
         )
 
+    async def async_added_to_hass(self) -> None:
+        """Connect to dispatcher listening for entity data notifications."""
+        await super().async_added_to_hass()
+
     @property
     def aparatus(self) -> Apparatus:
         return self.item.apparatus
@@ -129,6 +133,6 @@ class GeneracEntity(CoordinatorEntity[GeneracDataUpdateCoordinator]):
     @callback
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
-        self.item = (self.coordinator.data or {}).get(self.generator_id, _EMPTY_ITEM)
+        self.item = (self.coordinator.data or {}).get(self.device_id, _EMPTY_ITEM)
         _LOGGER.debug("Updated Generac entity %s", self.unique_id)
         self.async_write_ha_state()

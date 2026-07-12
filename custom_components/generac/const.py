@@ -1,8 +1,9 @@
-"""Constants for Generac Updated Login."""
+"""Constants for Generac MobileLink."""
 # Base component constants
-NAME = "Generac Updated Login"
+NAME = "Generac MobileLink"
 DOMAIN = "generac"
-VERSION = "0.4.0"
+DOMAIN_DATA = f"{DOMAIN}_data"
+VERSION = "0.5.0"
 
 ATTRIBUTION = (
     "Data provided by https://app.mobilelinkgen.com/api. "
@@ -11,6 +12,26 @@ ATTRIBUTION = (
 )
 ISSUE_URL = "https://github.com/technorat2/ha-generac/issues"
 
+# Device types
+# 0 = generator
+# 1 = ?
+# 2 = propane tank monitor
+DEVICE_TYPE_GENERATOR = 0
+DEVICE_TYPE_UNKNOWN = 1
+DEVICE_TYPE_PROPANE_MONITOR = 2
+DEVICE_NAME_LIST = ["Generator", "Unknown", "Propane Tank"]
+
+# Allowlisted device types
+ALLOWED_DEVICES = [DEVICE_TYPE_GENERATOR, DEVICE_TYPE_PROPANE_MONITOR]
+
+# Defaults
+DEFAULT_NAME = DOMAIN
+# 900 s = 15 min. Generac's cloud doesn't push very often (~minutes
+# between updates) and the API is rate-limited per-account, so polling
+# faster than this provides little benefit and risks hitting their
+# throttles.
+DEFAULT_SCAN_INTERVAL = 900
+
 # Platforms
 BINARY_SENSOR = "binary_sensor"
 SENSOR = "sensor"
@@ -18,14 +39,28 @@ WEATHER = "weather"
 IMAGE = "image"
 PLATFORMS = [BINARY_SENSOR, SENSOR, WEATHER, IMAGE]
 
-
-# Configuration
+# Configuration labels
+CONF_ENABLED = "enabled"
 CONF_USERNAME = "username"
 CONF_PASSWORD = "password"
+# One-time MFA code (SMS / authenticator app / email) collected in the
+# second config-flow step when Auth0 demands it.
+CONF_MFA_CODE = "mfa_code"
+# Credentials: refresh token + DPoP private key (stored as PKCS8 PEM).
+# These two values together are the credential — losing either invalidates
+# the entry and forces reauth.
+CONF_REFRESH_TOKEN = "refresh_token"
+CONF_DPOP_PEM = "dpop_pem"
+CONF_SCAN_INTERVAL = "scan_interval"
 
-# Defaults
-DEFAULT_NAME = DOMAIN
-
+# Options
+bool_opts = {}
+for p in PLATFORMS:
+    bool_opts[p] = {"type": bool, "default": True}
+CONF_OPTIONS = {
+    **bool_opts,
+    CONF_SCAN_INTERVAL: {"type": int, "default": DEFAULT_SCAN_INTERVAL},
+}
 
 STARTUP_MESSAGE = f"""
 -------------------------------------------------------------------
@@ -38,23 +73,4 @@ If you have any issues with this you need to open an issue here:
 """
 
 
-API_BASE = "https://app.mobilelinkgen.com/api"
-API_V5_BASE = f"{API_BASE}/v5"
-MOBILE_API_USER_AGENT = "okhttp/4.12.0"
-AUTH0_SIGN_IN = f"{API_BASE}/Auth/Auth0/SignIn"
-AUTH0_AUTHORIZE_URL = "https://auth.ecobee.com/authorize"
-AUTH0_TOKEN_URL = "https://auth.ecobee.com/oauth/token"
-AUTH0_CLIENT_ID = "USGUdyxRw1IrbXSY626wXXxZfnbS2R11"
-AUTH0_AUDIENCE = "https://prod.ecobee.com/api/v1"
-AUTH0_SCOPE = "openid email offline_access invoke:api"
-AUTH0_CLIENT_HEADER = "eyJuYW1lIjoicmVhY3QtbmF0aXZlLWF1dGgwIiwidmVyc2lvbiI6IjUuNC4wIn0="
-AUTH0_REDIRECT_URI = (
-    "com.generac.standbystatus://auth.ecobee.com/android/"
-    "com.generac.standbystatus/callback"
-)
-CONF_AUTH_MODE = "auth_mode"
-CONF_ACCESS_TOKEN = "access_token"
-CONF_REFRESH_TOKEN = "refresh_token"
-CONF_EXPIRES_AT = "expires_at"
-AUTH_MODE_PKCE = "pkce"
-AUTH_MODE_WEB_COOKIE = "web_cookie"
+API_BASE = "https://app.mobilelinkgen.com/api/v5"

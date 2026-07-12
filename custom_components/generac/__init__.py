@@ -4,113 +4,93 @@ Custom integration to integrate generac with Home Assistant.
 For more details about this integration, please refer to
 https://github.com/technorat2/ha-generac
 """
-import asyncio
 import logging
-from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.exceptions import ConfigEntryNotReady
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import GeneracApiClient
-from .const import AUTH_MODE_PKCE
-from .const import AUTH_MODE_WEB_COOKIE
-from .const import CONF_ACCESS_TOKEN
-from .const import CONF_AUTH_MODE
-from .const import CONF_EXPIRES_AT
-from .const import CONF_PASSWORD
+from .api import InvalidCredentialsException
+from .auth import GeneracAuth
+from .auth import InvalidGrantError
+from .const import CONF_DPOP_PEM
 from .const import CONF_REFRESH_TOKEN
 from .const import CONF_USERNAME
 from .const import DOMAIN
 from .const import PLATFORMS
 from .const import STARTUP_MESSAGE
 from .coordinator import GeneracDataUpdateCoordinator
+from .utils import async_client_session
 
 _LOGGER: logging.Logger = logging.getLogger(__package__)
 
 
-def _enabled_platforms(entry: ConfigEntry) -> list[str]:
-    """Return platforms enabled in the integration options."""
-    return [platform for platform in PLATFORMS if entry.options.get(platform, True)]
-
-
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     """Set up this integration using UI."""
-    if DOMAIN not in hass.data:
-        hass.data[DOMAIN] = {}
+    if hass.data.get(DOMAIN) is None:
+        hass.data.setdefault(DOMAIN, {})
         _LOGGER.info(STARTUP_MESSAGE)
 
-    username = entry.data.get(CONF_USERNAME, "")
-    password = entry.data.get(CONF_PASSWORD, "")
-    access_token = entry.data.get(CONF_ACCESS_TOKEN, "")
-    refresh_token = entry.data.get(CONF_REFRESH_TOKEN, "")
-    expires_at = entry.data.get(CONF_EXPIRES_AT, 0)
+    refresh_token = entry.data.get(CONF_REFRESH_TOKEN)
+    pem_str = entry.data.get(CONF_DPOP_PEM)
+    email = entry.data.get(CONF_USERNAME)
 
-    session = async_get_clientsession(hass)
+    if not refresh_token or not pem_str:
+        # Either a fresh v1->v2 migration with stripped data, or
+        # somehow the credentials were lost. Either way, reauth.
+        raise ConfigEntryAuthFailed("Missing refresh token or DPoP key")
 
-    def update_tokens(tokens: dict[str, Any]) -> None:
-        """Persist refreshed tokens without changing the user's credentials."""
-        hass.config_entries.async_update_entry(entry, data={**entry.data, **tokens})
+    session = await async_client_session(hass)
+    try:
+        auth = GeneracAuth.from_storage(session, refresh_token, pem_str, email=email)
+    except Exception as ex:
+        _LOGGER.error("Failed to load stored credentials: %s", ex)
+        raise ConfigEntryAuthFailed("Stored credentials are unreadable") from ex
 
-    client = GeneracApiClient(
-        username,
-        password,
-        session,
-        access_token=access_token,
-        refresh_token=refresh_token,
-        expires_at=expires_at,
-        token_update_callback=update_tokens,
-    )
+    async def _persist_rt(new_rt: str) -> None:
+        hass.config_entries.async_update_entry(
+            entry, data={**entry.data, CONF_REFRESH_TOKEN: new_rt}
+        )
 
-    coordinator = GeneracDataUpdateCoordinator(hass, client=client)
-    await coordinator.async_config_entry_first_refresh()
+    auth.set_refresh_token_persist_callback(_persist_rt)
+
+    client = GeneracApiClient(session, auth)
+    coordinator = GeneracDataUpdateCoordinator(hass, client=client, config_entry=entry)
+    try:
+        await coordinator.async_config_entry_first_refresh()
+    except InvalidCredentialsException as ex:
+        raise ConfigEntryAuthFailed(str(ex)) from ex
+    except InvalidGrantError as ex:
+        raise ConfigEntryAuthFailed(str(ex)) from ex
+    except (ConfigEntryAuthFailed, ConfigEntryNotReady):
+        # Let HA handle these — the coordinator already raises the right
+        # one. Wrapping them in ConfigEntryNotReady would mask reauth.
+        raise
+    except Exception as ex:
+        raise ConfigEntryNotReady from ex
 
     if not coordinator.last_update_success:
-        raise ConfigEntryNotReady("Unable to fetch Generac Mobile Link data")
-
-    auth_mode = (
-        AUTH_MODE_PKCE
-        if client.auth_method.startswith("auth0")
-        else AUTH_MODE_WEB_COOKIE
-        if client.auth_method == "mobile_link_cookie"
-        else None
-    )
-    if auth_mode and entry.data.get(CONF_AUTH_MODE) != auth_mode:
-        hass.config_entries.async_update_entry(
-            entry, data={**entry.data, CONF_AUTH_MODE: auth_mode}
-        )
+        raise ConfigEntryNotReady
 
     hass.data[DOMAIN][entry.entry_id] = coordinator
 
-    await hass.config_entries.async_forward_entry_setups(
-        entry, _enabled_platforms(entry)
-    )
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(async_reload_entry))
     return True
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Handle removal of an entry."""
-    domain_data = hass.data.get(DOMAIN, {})
-    if entry.entry_id not in domain_data:
-        return True
-
-    unloaded = all(
-        await asyncio.gather(
-            *[
-                hass.config_entries.async_forward_entry_unload(entry, platform)
-                for platform in PLATFORMS
-            ]
-        )
-    )
+    unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unloaded:
-        domain_data.pop(entry.entry_id, None)
-
+        # Defensive default: a mid-reconfigure unload must not raise KeyError.
+        hass.data[DOMAIN].pop(entry.entry_id, None)
     return unloaded
 
 
 async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Reload config entry."""
-    if await async_unload_entry(hass, entry):
-        await async_setup_entry(hass, entry)
+    await async_unload_entry(hass, entry)
+    await async_setup_entry(hass, entry)

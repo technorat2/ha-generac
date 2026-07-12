@@ -16,13 +16,14 @@ from .models import Item
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ):
-    """Setup image platform."""
+    """Setup binary_sensor platform."""
     coordinator: GeneracDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
     data = coordinator.data
     if isinstance(data, dict):
         async_add_entities(
-            HeroImageSensor(coordinator, entry, generator_id, item, hass)
-            for generator_id, item in data.items()
+            HeroImageSensor(coordinator, entry, device_id, item, hass)
+            for device_id, item in data.items()
+            if item.apparatusDetail.heroImageUrl is not None
         )
 
 
@@ -33,12 +34,12 @@ class HeroImageSensor(GeneracEntity, ImageEntity):
         self,
         coordinator: GeneracDataUpdateCoordinator,
         config_entry: ConfigEntry,
-        generator_id: str,
+        device_id: str,
         item: Item,
         hass: HomeAssistant,
     ):
         """Initialize device."""
-        super().__init__(coordinator, config_entry, generator_id, item)
+        super().__init__(coordinator, config_entry, device_id, item)
         ImageEntity.__init__(self, hass)
 
     @property
@@ -60,7 +61,7 @@ class HeroImageSensor(GeneracEntity, ImageEntity):
         resp = await super()._fetch_url(url)
         if (
             resp is not None
-            and "image" not in resp.headers.get("content-type")
+            and "image" not in (resp.headers.get("content-type") or "")
             and self.aparatus_detail.heroImageUrl
         ):
             guess = mimetypes.guess_type(self.aparatus_detail.heroImageUrl)[0]

@@ -1,17 +1,20 @@
 """Sensor platform for generac."""
+import logging
 from datetime import datetime
-from typing import Any
 from typing import Type
 
+from homeassistant.components.sensor import SensorDeviceClass
 from homeassistant.components.sensor import SensorEntity
-from homeassistant.components.sensor.const import SensorDeviceClass
 from homeassistant.components.sensor.const import SensorStateClass
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import PERCENTAGE
+from homeassistant.const import UnitOfElectricPotential
 from homeassistant.const import UnitOfTemperature
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
+from .const import DEVICE_TYPE_GENERATOR
+from .const import DEVICE_TYPE_PROPANE_MONITOR
 from .const import DOMAIN
 from .coordinator import GeneracDataUpdateCoordinator
 from .entity import GeneracEntity
@@ -21,54 +24,95 @@ from .models import Item
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ):
-    """Setup sensor platform."""
+    """Setup binary_sensor platform."""
     coordinator: GeneracDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
     data = coordinator.data
     if isinstance(data, dict):
         async_add_entities(
-            sensor(coordinator, entry, generator_id, item)
-            for generator_id, item in data.items()
+            sensor(coordinator, entry, device_id, item)
+            for device_id, item in data.items()
             for sensor in sensors(item)
         )
 
 
 def sensors(item: Item) -> list[Type[GeneracEntity]]:
-    lst = [
-        StatusSensor,
-        RunTimeSensor,
-        ProtectionTimeSensor,
-        ActivationDateSensor,
-        LastSeenSensor,
-        ConnectionTimeSensor,
-        BatteryVoltageSensor,
-        DeviceTypeSensor,
-        DealerEmailSensor,
-        DealerNameSensor,
-        DealerPhoneSensor,
-        AddressSensor,
-        StatusTextSensor,
-        StatusLabelSensor,
-        SerialNumberSensor,
-        ModelNumberSensor,
-        DeviceSsidSensor,
-        PanelIDSensor,
-    ]
-    if get_apparatus_property_value(item, "signalStrength") is not None:
-        lst.append(SignalStrengthSensor)
-    if get_apparatus_property_value(item, "batteryLevel") is not None:
-        lst.append(DeviceBatteryLevelSensor)
-    if get_detail_property_value(item, 95) is not None:
-        lst.append(ExerciseMinutesSensor)
+    """Decide what sensors to use based on device type.
+
+    Presence of `tuProperties` indicates a propane tank monitor.
+    Presence of `properties` indicates a generator
+    """
+    if item.apparatus.type == DEVICE_TYPE_GENERATOR:
+        lst = [
+            StatusSensor,
+            RunTimeSensor,
+            ProtectionTimeSensor,
+            ActivationDateSensor,
+            LastSeenSensor,
+            ConnectionTimeSensor,
+            BatteryVoltageSensor,
+            DeviceTypeSensor,
+            DealerEmailSensor,
+            DealerNameSensor,
+            DealerPhoneSensor,
+            AddressSensor,
+            StatusTextSensor,
+            StatusLabelSensor,
+            SerialNumberSensor,
+            ModelNumberSensor,
+            DeviceSsidSensor,
+            PanelIDSensor,
+        ]
+    elif item.apparatus.type == DEVICE_TYPE_PROPANE_MONITOR:
+        lst = [
+            StatusSensor,
+            CapacitySensor,
+            FuelLevelSensor,
+            FuelTypeSensor,
+            OrientationSensor,
+            LastReadingDateSensor,
+            BatteryLevelSensor,
+            AddressSensor,
+            DeviceTypeSensor,
+        ]
+    else:
+        lst = []
     if (
         item.apparatusDetail.weather is not None
         and item.apparatusDetail.weather.temperature is not None
         and item.apparatusDetail.weather.temperature.value is not None
     ):
         lst.append(OutdoorTemperatureSensor)
+    if get_apparatus_property_value(item, "signalStrength") is not None:
+        lst.append(SignalStrengthSensor)
+    if get_apparatus_property_value(item, "batteryLevel") is not None:
+        lst.append(DeviceBatteryLevelSensor)
+    if get_detail_property_value(item, 95) is not None:
+        lst.append(ExerciseMinutesSensor)
     return lst
 
 
-def get_detail_property_value(item: Item, property_type: int) -> Any:
+def format_timestamp(time_string: str) -> datetime:
+    """Format timestamp regardless of whether milliseconds are present."""
+    time_format = "%Y-%m-%dT%H:%M:%S%z"
+    if "." in time_string:
+        time_format = "%Y-%m-%dT%H:%M:%S.%f%z"
+
+    return datetime.strptime(time_string, time_format)
+
+
+def get_prop_value(props, type_num: int, default_val):
+    """Return the value of a property based on type code."""
+    if props is None:
+        return default_val
+    val = next(
+        (prop.value for prop in props if prop.type == type_num),
+        default_val,
+    )
+    return val
+
+
+def get_detail_property_value(item: Item, property_type: int):
+    """Return a detail property value by its Mobile Link type code."""
     if item.apparatusDetail.properties is None:
         return None
     return next(
@@ -81,15 +125,8 @@ def get_detail_property_value(item: Item, property_type: int) -> Any:
     )
 
 
-def get_first_detail_property_value(item: Item, property_types: list[int]) -> Any:
-    for property_type in property_types:
-        value = get_detail_property_value(item, property_type)
-        if value is not None:
-            return value
-    return None
-
-
-def get_apparatus_property_value(item: Item, field: str) -> Any:
+def get_apparatus_property_value(item: Item, field: str):
+    """Return a scalar field from the apparatus property payload."""
     if item.apparatus.properties is None:
         return None
     for prop in item.apparatus.properties:
@@ -102,34 +139,31 @@ def get_apparatus_property_value(item: Item, field: str) -> Any:
     return None
 
 
-def as_float(value: Any) -> float | None:
-    if value is None:
+_LOGGER = logging.getLogger(__name__)
+
+
+def _safe_float(val, label: str = ""):
+    """Best-effort float conversion; return None on bad data so the
+    sensor reports ``unknown`` instead of crashing native_value."""
+    if val is None:
         return None
-    if isinstance(value, str):
-        value = value.strip()
-        if value.endswith("%"):
-            value = value[:-1].strip()
+    if isinstance(val, (int, float)):
+        return float(val)
+    if isinstance(val, str) and val.strip().endswith("%"):
+        val = val.strip()[:-1].strip()
     try:
-        return float(value)
-    except (TypeError, ValueError):
+        return float(val)
+    except (TypeError, ValueError) as ex:
+        _LOGGER.debug(
+            "Could not convert %s sensor value %r to float: %s", label, val, ex
+        )
         return None
-
-
-def parseDatetime(rawStr: str) -> datetime:
-    formats = ["%Y-%m-%dT%H:%M:%S.%f%z", "%Y-%m-%dT%H:%M:%S%z"]
-    ves: list[ValueError] = []
-    for fmt in formats:
-        try:
-            return datetime.strptime(rawStr, fmt)
-        except ValueError as ve:
-            ves.append(ve)
-    raise ValueError(f"No known datetime format for raw string {rawStr}")
 
 
 class StatusSensor(GeneracEntity, SensorEntity):
     """generac Sensor class."""
 
-    _attr_options = [
+    options = [
         "Ready",
         "Running",
         "Exercising",
@@ -137,9 +171,11 @@ class StatusSensor(GeneracEntity, SensorEntity):
         "Stopped",
         "Communication Issue",
         "Unknown",
+        "Online",
+        "Offline",
     ]
-    _attr_icon = "mdi:power"
-    _attr_device_class = SensorDeviceClass.ENUM
+    device_class = SensorDeviceClass.ENUM
+    icon = "mdi:power"
 
     @property
     def name(self):
@@ -149,27 +185,31 @@ class StatusSensor(GeneracEntity, SensorEntity):
     @property
     def native_value(self):
         """Return the state of the sensor."""
-        options = self.options
-        if options is None:
-            return None
-        if self.aparatus_detail.apparatusStatus is None:
-            return options[-1]
-        index = self.aparatus_detail.apparatusStatus - 1
-        if index < 0 or index > len(options) - 1:
-            index = len(options) - 1
-        return options[index]
+        if self.aparatus.type == DEVICE_TYPE_GENERATOR:
+            if self.aparatus_detail.apparatusStatus is None:
+                return self.options[-1]
+            index = self.aparatus_detail.apparatusStatus - 1
+            if index < 0 or index > len(self.options) - 1:
+                index = len(self.options) - 1
+            return self.options[index]
+        else:
+            val = get_prop_value(self.aparatus.properties, 3, None)
+            if val is None:
+                return None
+            return val.status
 
 
 class DeviceTypeSensor(GeneracEntity, SensorEntity):
     """generac Sensor class."""
 
-    _attr_options = [
+    options = [
         "Wifi",
         "Ethernet",
         "MobileData",
+        "lte-tankutility-v2",
         "Unknown",
     ]
-    _attr_device_class = SensorDeviceClass.ENUM
+    device_class = SensorDeviceClass.ENUM
 
     @property
     def name(self):
@@ -179,27 +219,26 @@ class DeviceTypeSensor(GeneracEntity, SensorEntity):
     @property
     def native_value(self):
         """Return the state of the sensor."""
-        options = self.options
-        if options is None:
-            return None
         if self.aparatus_detail.deviceType is None:
-            return options[-1]
+            return self.options[-1]
         if self.aparatus_detail.deviceType == "wifi":
-            return options[0]
+            return self.options[0]
         if self.aparatus_detail.deviceType == "eth":
-            return options[1]
+            return self.options[1]
         if self.aparatus_detail.deviceType == "lte":
-            return options[2]
+            return self.options[2]
         if self.aparatus_detail.deviceType == "cdma":
-            return options[2]
-        return options[-1]
+            return self.options[2]
+        if self.aparatus_detail.deviceType == "lte-tankutility-v2":
+            return self.options[3]
+        return self.options[-1]
 
 
 class RunTimeSensor(GeneracEntity, SensorEntity):
     """generac Sensor class."""
 
-    _attr_device_class = SensorDeviceClass.DURATION
-    _attr_native_unit_of_measurement = "h"
+    device_class = SensorDeviceClass.DURATION
+    native_unit_of_measurement = "h"
 
     @property
     def name(self):
@@ -209,14 +248,15 @@ class RunTimeSensor(GeneracEntity, SensorEntity):
     @property
     def native_value(self):
         """Return the state of the sensor."""
-        return as_float(get_first_detail_property_value(self.item, [71, 70]))
+        val = get_prop_value(self.aparatus_detail.properties, 71, 0)
+        return _safe_float(val, "run_time")
 
 
 class ProtectionTimeSensor(GeneracEntity, SensorEntity):
     """generac Sensor class."""
 
-    _attr_device_class = SensorDeviceClass.DURATION
-    _attr_native_unit_of_measurement = "h"
+    device_class = SensorDeviceClass.DURATION
+    native_unit_of_measurement = "h"
 
     @property
     def name(self):
@@ -226,13 +266,14 @@ class ProtectionTimeSensor(GeneracEntity, SensorEntity):
     @property
     def native_value(self):
         """Return the state of the sensor."""
-        return as_float(get_first_detail_property_value(self.item, [32, 31]))
+        val = get_prop_value(self.aparatus_detail.properties, 32, 0)
+        return _safe_float(val, "protection_time")
 
 
 class ActivationDateSensor(GeneracEntity, SensorEntity):
     """generac Sensor class."""
 
-    _attr_device_class = SensorDeviceClass.TIMESTAMP
+    device_class = SensorDeviceClass.TIMESTAMP
 
     @property
     def name(self):
@@ -244,13 +285,14 @@ class ActivationDateSensor(GeneracEntity, SensorEntity):
         """Return the state of the sensor."""
         if self.aparatus_detail.activationDate is None:
             return None
-        return parseDatetime(self.aparatus_detail.activationDate)
+
+        return format_timestamp(self.aparatus_detail.activationDate)
 
 
 class LastSeenSensor(GeneracEntity, SensorEntity):
     """generac Sensor class."""
 
-    _attr_device_class = SensorDeviceClass.TIMESTAMP
+    device_class = SensorDeviceClass.TIMESTAMP
 
     @property
     def name(self):
@@ -262,13 +304,14 @@ class LastSeenSensor(GeneracEntity, SensorEntity):
         """Return the state of the sensor."""
         if self.aparatus_detail.lastSeen is None:
             return None
-        return parseDatetime(self.aparatus_detail.lastSeen)
+
+        return format_timestamp(self.aparatus_detail.lastSeen)
 
 
 class ConnectionTimeSensor(GeneracEntity, SensorEntity):
     """generac Sensor class."""
 
-    _attr_device_class = SensorDeviceClass.TIMESTAMP
+    device_class = SensorDeviceClass.TIMESTAMP
 
     @property
     def name(self):
@@ -280,14 +323,15 @@ class ConnectionTimeSensor(GeneracEntity, SensorEntity):
         """Return the state of the sensor."""
         if self.aparatus_detail.connectionTimestamp is None:
             return None
-        return parseDatetime(self.aparatus_detail.connectionTimestamp)
+
+        return format_timestamp(self.aparatus_detail.connectionTimestamp)
 
 
 class BatteryVoltageSensor(GeneracEntity, SensorEntity):
     """generac Sensor class."""
 
-    _attr_device_class = SensorDeviceClass.VOLTAGE
-    _attr_native_unit_of_measurement = "V"
+    device_class = SensorDeviceClass.VOLTAGE
+    native_unit_of_measurement = UnitOfElectricPotential.VOLT
 
     @property
     def name(self):
@@ -297,14 +341,15 @@ class BatteryVoltageSensor(GeneracEntity, SensorEntity):
     @property
     def native_value(self):
         """Return the state of the sensor."""
-        return as_float(get_first_detail_property_value(self.item, [70, 69]))
+        val = get_prop_value(self.aparatus_detail.properties, 70, 0)
+        return _safe_float(val, "battery_voltage")
 
 
 class ExerciseMinutesSensor(GeneracEntity, SensorEntity):
     """Exercise duration reported by Mobile Link."""
 
-    _attr_device_class = SensorDeviceClass.DURATION
-    _attr_native_unit_of_measurement = "min"
+    device_class = SensorDeviceClass.DURATION
+    native_unit_of_measurement = "min"
 
     @property
     def name(self):
@@ -314,13 +359,13 @@ class ExerciseMinutesSensor(GeneracEntity, SensorEntity):
     @property
     def native_value(self):
         """Return the state of the sensor."""
-        return as_float(get_detail_property_value(self.item, 95))
+        return _safe_float(get_detail_property_value(self.item, 95), "exercise_minutes")
 
 
 class OutdoorTemperatureSensor(GeneracEntity, SensorEntity):
     """generac Sensor class."""
 
-    _attr_device_class = SensorDeviceClass.TEMPERATURE
+    device_class = SensorDeviceClass.TEMPERATURE
 
     @property
     def name(self):
@@ -347,43 +392,8 @@ class OutdoorTemperatureSensor(GeneracEntity, SensorEntity):
             or self.aparatus_detail.weather.temperature is None
             or self.aparatus_detail.weather.temperature.value is None
         ):
-            return None
+            return 0
         return self.aparatus_detail.weather.temperature.value
-
-
-class SignalStrengthSensor(GeneracEntity, SensorEntity):
-    """Cellular signal strength reported by the Mobile Link device."""
-
-    _attr_icon = "mdi:signal-cellular-2"
-    _attr_native_unit_of_measurement = PERCENTAGE
-    _attr_state_class = SensorStateClass.MEASUREMENT
-
-    @property
-    def name(self):
-        """Return the name of the sensor."""
-        return self._friendly_name()
-
-    @property
-    def native_value(self):
-        """Return the state of the sensor."""
-        return as_float(get_apparatus_property_value(self.item, "signalStrength"))
-
-
-class DeviceBatteryLevelSensor(GeneracEntity, SensorEntity):
-    """Battery level reported by the Mobile Link device."""
-
-    _attr_device_class = SensorDeviceClass.BATTERY
-    _attr_native_unit_of_measurement = "%"
-
-    @property
-    def name(self):
-        """Return the name of the sensor."""
-        return self._friendly_name()
-
-    @property
-    def native_value(self):
-        """Return the state of the sensor."""
-        return as_float(get_apparatus_property_value(self.item, "batteryLevel"))
 
 
 class SerialNumberSensor(GeneracEntity, SensorEntity):
@@ -504,3 +514,137 @@ class PanelIDSensor(GeneracEntity, SensorEntity):
     def native_value(self):
         """Return the state of the sensor."""
         return self.aparatus.panelId
+
+
+# Propane Tank Monitor-specific Sensors
+class CapacitySensor(GeneracEntity, SensorEntity):
+    """generac Sensor class."""
+
+    @property
+    def name(self):
+        """Return the name of the sensor."""
+        return self._friendly_name()
+
+    @property
+    def native_value(self):
+        """Return the state of the sensor."""
+        return get_prop_value(self.aparatus_detail.tuProperties, 1, 0)
+
+
+class FuelTypeSensor(GeneracEntity, SensorEntity):
+    """generac Sensor class."""
+
+    @property
+    def name(self):
+        """Return the name of the sensor."""
+        return self._friendly_name()
+
+    @property
+    def native_value(self):
+        """Return the state of the sensor."""
+        return get_prop_value(self.aparatus_detail.tuProperties, 0, "Propane")
+
+
+class OrientationSensor(GeneracEntity, SensorEntity):
+    """generac Sensor class."""
+
+    @property
+    def name(self):
+        """Return the name of the sensor."""
+        return self._friendly_name()
+
+    @property
+    def native_value(self):
+        """Return the state of the sensor."""
+        return get_prop_value(self.aparatus_detail.tuProperties, 2, None)
+
+
+class BatteryLevelSensor(GeneracEntity, SensorEntity):
+    """generac Sensor class."""
+
+    @property
+    def name(self):
+        """Return the name of the sensor."""
+        return self._friendly_name()
+
+    @property
+    def native_value(self):
+        """Return the state of the sensor."""
+        return get_prop_value(self.aparatus_detail.tuProperties, 17, None)
+
+
+class LastReadingDateSensor(GeneracEntity, SensorEntity):
+    """generac Sensor class."""
+
+    device_class = SensorDeviceClass.TIMESTAMP
+
+    @property
+    def name(self):
+        """Return the name of the sensor."""
+        return self._friendly_name()
+
+    @property
+    def native_value(self):
+        """Return the state of the sensor."""
+        val = get_prop_value(self.aparatus_detail.tuProperties, 11, None)
+        if val is None:
+            return None
+        return format_timestamp(val)
+
+
+class FuelLevelSensor(GeneracEntity, SensorEntity):
+    """generac Sensor class."""
+
+    device_class = SensorDeviceClass.BATTERY
+    native_unit_of_measurement = PERCENTAGE
+
+    @property
+    def name(self):
+        """Return the name of the sensor."""
+        return self._friendly_name()
+
+    @property
+    def native_value(self):
+        """Return the state of the sensor."""
+        return get_prop_value(self.aparatus_detail.tuProperties, 9, None)
+
+
+class SignalStrengthSensor(GeneracEntity, SensorEntity):
+    """generac Sensor class."""
+
+    _attr_icon = "mdi:signal-cellular-2"
+    _attr_native_unit_of_measurement = PERCENTAGE
+    _attr_state_class = SensorStateClass.MEASUREMENT
+
+    @property
+    def name(self):
+        """Return the name of the sensor."""
+        return self._friendly_name()
+
+    @property
+    def native_value(self):
+        """Return the state of the sensor."""
+        return _safe_float(
+            get_apparatus_property_value(self.item, "signalStrength"),
+            "signal_strength",
+        )
+
+
+class DeviceBatteryLevelSensor(GeneracEntity, SensorEntity):
+    """Battery level reported by the Mobile Link device."""
+
+    _attr_device_class = SensorDeviceClass.BATTERY
+    _attr_native_unit_of_measurement = PERCENTAGE
+
+    @property
+    def name(self):
+        """Return the name of the sensor."""
+        return self._friendly_name()
+
+    @property
+    def native_value(self):
+        """Return the state of the sensor."""
+        return _safe_float(
+            get_apparatus_property_value(self.item, "batteryLevel"),
+            "device_battery_level",
+        )

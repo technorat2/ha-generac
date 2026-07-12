@@ -20,13 +20,13 @@ async def async_setup_entry(
     data = coordinator.data
     if isinstance(data, dict):
         async_add_entities(
-            sensor(coordinator, entry, generator_id, item)
-            for generator_id, item in data.items()
+            sensor(coordinator, entry, device_id, item)
+            for device_id, item in data.items()
             for sensor in sensors()
         )
 
 
-def sensors() -> list[Type[GeneracEntity]]:
+def sensors() -> Type[GeneracEntity]:
     return [
         GeneracConnectedSensor,
         GeneracConnectingSensor,
@@ -55,12 +55,17 @@ class GeneracConnectedSensor(GeneracEntity, BinarySensorEntity):
 
 
 class GeneracConnectingSensor(GeneracEntity, BinarySensorEntity):
-    """True while the Mobile Link device is connecting."""
+    """generac binary_sensor class."""
 
     @property
     def name(self):
         """Return the name of the binary_sensor."""
         return self._friendly_name()
+
+    @property
+    def device_class(self):
+        """Return the class of this binary_sensor."""
+        return BinarySensorDeviceClass.CONNECTIVITY
 
     @property
     def is_on(self):

@@ -107,7 +107,7 @@ class Apparatus:
         @dataclass
         class Value:
             type: Optional[int]
-            status: Optional[int] | Optional[str]
+            status: Optional[int | str]
             isLegacy: Optional[bool]
             isRunning: Optional[bool]
             deviceId: Optional[str]
@@ -115,7 +115,7 @@ class Apparatus:
             signalStrength: Optional[str]
             batteryLevel: Optional[str]
 
-        value: Optional[Value | list]
+        value: Optional[Value | list | str | int]
         type: Optional[int]
 
     properties: Optional[list[Property]] = None
@@ -148,8 +148,8 @@ class ApparatusDetail:
     @dataclass
     class Property:
         name: Optional[str]
-        value: Optional[str | int | float]
-        type: Optional[int]
+        value: Optional[str | int | float | dict]
+        type: Optional[int | str]
 
     @dataclass
     class ProductInfo:
@@ -180,6 +180,7 @@ class ApparatusDetail:
     connectionTimestamp: Optional[str] = None
     address: Optional[Address] = None
     properties: Optional[list[Property]] = None
+    tuProperties: Optional[list[Property]] = None
     subscription: Optional[Subscription] = None
     enrolledInVpp: Optional[bool] = None
     hasActiveVppEvent: Optional[bool] = None

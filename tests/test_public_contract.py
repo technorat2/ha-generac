@@ -1,9 +1,10 @@
 """Tests for the public repository contract that do not require Home Assistant."""
 import ast
 import base64
-import binascii
+import importlib.util
 import json
 import re
+import sys
 import unittest
 from pathlib import Path
 
@@ -26,55 +27,65 @@ class PublicContractTests(unittest.TestCase):
     def test_manifest(self):
         manifest = json.loads((COMPONENT / "manifest.json").read_text(encoding="utf-8"))
         self.assertEqual(manifest["domain"], COMPONENT.name)
-        self.assertEqual(manifest["name"], "Generac Updated Login")
-        self.assertEqual(manifest["version"], "0.4.0")
+        self.assertEqual(manifest["name"], "Generac MobileLink")
+        self.assertEqual(manifest["version"], "0.5.0")
         self.assertEqual(manifest["integration_type"], "hub")
         self.assertIn("@technorat2", manifest["codeowners"])
         const_source = (COMPONENT / "const.py").read_text(encoding="utf-8")
-        self.assertIn('VERSION = "0.4.0"', const_source)
+        self.assertIn('VERSION = "0.5.0"', const_source)
+        self.assertIn('CONF_DPOP_PEM = "dpop_pem"', const_source)
+        self.assertIn("DEFAULT_SCAN_INTERVAL = 900", const_source)
 
     def test_auth_refresh_contract(self):
-        source = (COMPONENT / "api.py").read_text(encoding="utf-8")
+        source = (COMPONENT / "auth.py").read_text(encoding="utf-8")
+        self.assertIn("class DPoPKey", source)
+        self.assertIn('"dpop_jkt"', source)
+        self.assertIn('"dpop-nonce"', source)
         self.assertIn("self._refresh_lock = asyncio.Lock()", source)
-        self.assertIn("self._jwt_exp(self.access_token)", source)
-        self.assertIn("await self.login_with_auth0_pkce()", source)
-        self.assertLess(
-            source.index("await self.login_with_auth0_pkce()"),
-            source.index("await self.login_with_mobile_link_web()"),
-        )
+        self.assertIn("timeout=REQUEST_TIMEOUT", source)
+        self.assertIn("async def force_refresh", source)
 
-    def test_jwt_expiry_parser(self):
-        source = (COMPONENT / "api.py").read_text(encoding="utf-8")
-        tree = ast.parse(source)
-        method = next(
-            node
-            for node in ast.walk(tree)
-            if isinstance(node, ast.FunctionDef) and node.name == "_jwt_exp"
+        api_source = (COMPONENT / "api.py").read_text(encoding="utf-8")
+        self.assertIn("Authorization", api_source)
+        self.assertIn("REQUEST_TIMEOUT", api_source)
+        self.assertIn("forcing one DPoP refresh", api_source)
+        self.assertNotIn("session_cookie", api_source)
+
+    def test_dpop_key_round_trip_and_proof(self):
+        source_path = COMPONENT / "auth.py"
+        spec = importlib.util.spec_from_file_location("generac_auth_test", source_path)
+        auth_module = importlib.util.module_from_spec(spec)
+        assert spec.loader is not None
+        sys.modules[spec.name] = auth_module
+        spec.loader.exec_module(auth_module)
+
+        key = auth_module.DPoPKey.generate()
+        restored = auth_module.DPoPKey.from_pem_str(key.to_pem_str())
+        proof = restored.sign_proof(
+            "POST", "https://auth.ecobee.com/oauth/token", access_token="token"
         )
-        method.decorator_list = []
-        namespace = {
-            "base64": base64,
-            "binascii": binascii,
-            "json": json,
-        }
-        exec(
-            compile(ast.Module(body=[method], type_ignores=[]), str(COMPONENT), "exec"),
-            namespace,
-        )
-        jwt_exp = namespace["_jwt_exp"]
-        payload = (
-            base64.urlsafe_b64encode(json.dumps({"exp": 1234567890}).encode("utf-8"))
-            .decode("ascii")
-            .rstrip("=")
-        )
-        self.assertEqual(jwt_exp(f"header.{payload}.signature"), 1234567890.0)
-        self.assertIsNone(jwt_exp("not-a-jwt"))
-        self.assertIsNone(jwt_exp("header.!!!.signature"))
+        header, payload, signature = proof.split(".")
+
+        def decode(value):
+            return json.loads(
+                base64.urlsafe_b64decode(value + "=" * (-len(value) % 4))
+            )
+
+        self.assertTrue(signature)
+        self.assertEqual(decode(header)["typ"], "dpop+jwt")
+        self.assertEqual(decode(payload)["htm"], "POST")
+        self.assertEqual(decode(payload)["htu"], "https://auth.ecobee.com/oauth/token")
+        self.assertIn("ath", decode(payload))
 
     def test_diagnostics_handles_unloaded_entry(self):
         source = (COMPONENT / "diagnostics.py").read_text(encoding="utf-8")
         self.assertIn('"status": "not_loaded"', source)
         self.assertIn("hass.data.get(DOMAIN, {})", source)
+
+    def test_reauth_removes_discarded_credentials(self):
+        source = (COMPONENT / "config_flow.py").read_text(encoding="utf-8")
+        self.assertIn("_replace_auth_data", source)
+        self.assertIn('"password"', source)
 
     def test_json_files_are_valid(self):
         for path in COMPONENT.rglob("*.json"):
@@ -128,15 +139,20 @@ class PublicContractTests(unittest.TestCase):
             parse_entity_name("generac_2413103_panel_id"),
             "Panel ID",
         )
+        self.assertEqual(
+            parse_entity_name("generac_2413103_device_ssid"),
+            "Device SSID",
+        )
 
     def test_signal_strength_contract(self):
         source = (COMPONENT / "sensor.py").read_text(encoding="utf-8")
         self.assertIn("_attr_native_unit_of_measurement = PERCENTAGE", source)
         self.assertIn("_attr_state_class = SensorStateClass.MEASUREMENT", source)
         self.assertIn(
-            'as_float(get_apparatus_property_value(self.item, "signalStrength"))',
+            'get_apparatus_property_value(self.item, "signalStrength")',
             source,
         )
+        self.assertIn("SensorStateClass.MEASUREMENT", source)
 
 
 if __name__ == "__main__":

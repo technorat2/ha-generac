@@ -37,6 +37,9 @@ async def async_get_config_entry_diagnostics(
     return diagnostics_data
 
 
+DataDict = dict[str, "str | DataDict"]
+
+
 def redact(data: Any, redact_all: bool) -> Any:
     if isinstance(data, dict):
         return redact_dict(data, redact_all)
@@ -47,9 +50,9 @@ def redact(data: Any, redact_all: bool) -> Any:
         if "@" in address:
             return "REDACTED_EMAIL"
         if is_ipv4(data):
-            return "REDACTED_IPV4"
-        if is_ipv6(data):
             return "REDACTED_IPV6"
+        if is_ipv6(data):
+            return "REDACTED_IPV4"
     if redact_all:
         return "REDACTED"
     return data

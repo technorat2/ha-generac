@@ -1,0 +1,34 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Generac MobileLink",
+        "description": "Inicie sessão na sua conta Mobile Link com Auth0 PKCE/DPoP.",
+        "data": {
+          "username": "Nome de utilizador",
+          "password": "Palavra-passe"
+        }
+      }
+    },
+    "error": {
+      "auth": "Nome de utilizador ou palavra-passe incorretos.",
+      "internal": "Erro interno. Consulte os registos do Home Assistant."
+    },
+    "abort": {
+      "single_instance_allowed": "Apenas é permitida uma única instância."
+    }
+  },
+  "options": {
+    "step": {
+      "user": {
+        "data": {
+          "binary_sensor": "Sensores binários ativados",
+          "image": "Imagem ativada",
+          "scan_interval": "Intervalo de sondagem (segundos)",
+          "sensor": "Sensores não binários ativados",
+          "weather": "Sensor meteorológico ativado"
+        }
+      }
+    }
+  }
+}

@@ -2,8 +2,8 @@
   "config": {
     "step": {
       "user": {
-        "title": "Generac Updated Login",
-        "description": "Koble til med Auth0 authorization-code PKCE. Hvis PKCE feiler, bruker oppsettet Mobile Link web-cookie-broen.",
+        "title": "Generac MobileLink",
+        "description": "Logg inn med Mobile Link-kontoen din via Auth0 PKCE/DPoP.",
         "data": {
           "username": "Brukernavn",
           "password": "Passord"
@@ -11,9 +11,10 @@
       }
     },
     "error": {
-      "auth": "Brukernavn/Passord er feil.",
-      "cannot_connect": "Kan ikke koble til Generac Mobile Link.",
-      "internal": "Intern feil. Se Home Assistant-loggene."
+      "auth": "Brukernavn/Passord er feil."
+    },
+    "abort": {
+      "single_instance_allowed": "Denne integrasjonen kan kun konfigureres en gang."
     }
   },
   "options": {
@@ -22,8 +23,9 @@
         "data": {
           "binary_sensor": "Binær sensor aktivert",
           "image": "Bilde aktivert",
+          "scan_interval": "Avstemningsintervall i sekunder",
           "sensor": "Sensor aktivert",
-          "weather": "Vær aktivert"
+          "weather": "Værsensor aktivert"
         }
       }
     }
