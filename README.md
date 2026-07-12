@@ -1,220 +1,107 @@
-# Generac MobileLink (Anderson fork) — Home Assistant integration
+# Generac MobileLink
 
-[![HACS Default][hacs-badge]][hacs]
-[![Validate][validate-badge]][validate-workflow]
+Unofficial Home Assistant integration for Generac MobileLink generators and
+propane tank monitors. This repository is a fork of
+[pjordanandrsn/ha-generac](https://github.com/pjordanandrsn/ha-generac) with
+friendly entity names, diagnostics, branding, additional sensors, and focused
+repository tests.
 
-> **✅ Available in HACS** — this integration is in the [HACS][hacs]
-> **default** store, so you can install it directly from HACS with no
-> custom repository needed. See [Install via HACS](#install-via-hacs).
+## Features
 
-A Home Assistant custom integration that polls the Generac MobileLink
-cloud and exposes whole-home generators (and propane tank monitors) as
-HA entities.
+- UI-based Home Assistant setup.
+- Auth0 authorization-code PKCE with a persisted DPoP key.
+- Access-token refresh without storing the account password or copying cookies.
+- Home Assistant reauthentication when the refresh credential is rejected.
+- MFA code handling for SMS, authenticator-app, and email factors.
+- Auth0 custom-prompt handling for consent and account-update screens.
+- Configurable cloud polling, defaulting to 15 minutes.
+- Generator status, runtime, protection time, exercise, battery, connectivity,
+  warning, maintenance, serial/model, dealer, address, panel, and signal data.
+- Propane tank monitor entities when returned by the account.
+- Numeric signal strength reported as a percentage.
+- Weather and generator image entities when returned by the API.
+- Friendly entity names while preserving stable technical entity IDs.
+- Redacted diagnostics and targeted debug logging.
 
-This is a downstream **fork** of [`binarydev/ha-generac`][upstream] that
-ships the auth rewrite from [PR #267][pr267] by [@sslivins][sslivins],
-a handler for the Auth0 Forms consent prompt some post-migration
-accounts get on first login, and support for one-time **two-factor
-codes** (SMS / authenticator app / email) at sign-in.
+Mobile Link is a private reverse-engineered API and can change without notice.
+The integration is not affiliated with or endorsed by Generac.
 
-> **Status:** Maintained as part of the Anderson family wall-display
-> kiosk. Community PRs welcome — no SLA. If you want the official
-> upstream, use [`binarydev/ha-generac`][upstream] (note: as of writing,
-> upstream is still on the legacy cookie-based auth path that breaks
-> when Generac retires the old endpoints).
+## Installation With HACS
 
-## Why this fork exists
+1. Open **HACS** in Home Assistant.
+2. Add `https://github.com/technorat2/ha-generac` as a custom repository in the
+   **Integration** category.
+3. Download **Generac MobileLink**.
+4. Restart Home Assistant.
+5. Go to **Settings** > **Devices & services** > **Add Integration**.
+6. Search for **Generac MobileLink** and enter your Mobile Link credentials.
 
-Generac flipped MobileLink authentication to Auth0/DPoP on
-**2026-04-21**
-([Generac support article][generac-migration]). The released
-`binarydev/ha-generac` v0.4.2 still scrapes `MobileLinkClientCookie`
-from the legacy session — that path is fragile and will break outright
-once Generac retires the legacy endpoint.
+## Manual Installation
 
-[PR #267][pr267] by `@sslivins` rewrites the auth path to Auth0
-universal login (email + password) plus DPoP-bound refresh tokens,
-persisted in the HA config entry. The user enters credentials once via
-the UI and the integration handles refresh forever.
+Copy `custom_components/generac/` into:
 
-This fork tracks PR #267 with one extra patch (see
-[Differences from upstream PR #267](#differences-from-upstream-pr-267))
-and is published in the HACS **default** store so other
-MobileLink users aren't blocked on the upstream review queue.
+```text
+<home-assistant-config>/custom_components/generac/
+```
 
-## Install via HACS
+Restart Home Assistant, then add **Generac MobileLink** through the UI.
 
-This integration is in the HACS **default** store, so you can install it
-directly — no custom repository needed:
+## Authentication
 
-1. In Home Assistant, open **HACS**.
-2. Search for **Generac MobileLink (Anderson fork)** and click
-   **Download**.
-3. Restart Home Assistant.
-4. **Settings → Devices & Services → Add Integration → Generac
-   MobileLink** and follow [First-time setup](#first-time-setup).
+The integration uses Auth0 authorization-code PKCE with a DPoP-bound refresh
+credential. Mobile Link resource requests use the bearer access token issued by
+Auth0; DPoP proofs are used for the Auth0 token exchange and refresh operations.
+The private DPoP key and refresh token are persisted in the Home Assistant
+config entry. Passwords and web cookies are not persisted. Invalid credentials
+surface as Home Assistant reauthentication.
 
-<details>
-<summary>Alternative: add as a custom repository</summary>
+Accounts with SMS, authenticator-app, or email MFA receive a second setup step
+for the verification code. Unsupported interactive factors are reported with
+an actionable setup error.
 
-1. In Home Assistant, open **HACS**.
-2. Open the top-right menu and pick **Custom repositories**.
-3. Add this repository:
-   - Repository: `https://github.com/pjordanandrsn/ha-generac`
-   - Category: `Integration`
-4. Click **Add**.
-5. Find **Generac MobileLink (Anderson fork)** in the HACS integration
-   list and click **Download**.
-6. Restart Home Assistant.
-7. **Settings → Devices & Services → Add Integration → Generac
-   MobileLink** and follow [First-time setup](#first-time-setup).
-</details>
+## Entities
 
-## Manual install (no HACS)
+| Platform | Entities |
+| --- | --- |
+| `binary_sensor` | Is Connected, Is Connecting, Maintenance Alert, Warning |
+| `sensor` | Status, Device Type, Runtime, Protection Time, Activation Date, Last Seen, Connection Time, Battery Voltage, Exercise Minutes, Outdoor Temperature, Signal Strength, Device Battery Level, Serial Number, Model Number, Device SSID, Status Label, Status Text, Address, Dealer Name, Dealer Email, Dealer Phone, Panel ID, tank capacity/fuel/orientation sensors |
+| `weather` | Weather |
+| `image` | Hero Image |
 
-1. Copy `custom_components/generac/` from this repo into your HA
-   `config/custom_components/` directory.
-2. Restart Home Assistant.
-3. Add the integration via **Settings → Devices & Services → Add
-   Integration → Generac MobileLink**.
+## Troubleshooting
 
-## First-time setup
+Enable targeted logging in `configuration.yaml`:
 
-Adding the integration requires a Home Assistant **admin** session
-(non-admin users cannot add integrations). If your wall display runs as
-a non-admin kiosk user, do this from a separate browser session:
+```yaml
+logger:
+  logs:
+    custom_components.generac: debug
+```
 
-1. Open `http://<HA_HOST>:8123` and sign in as an admin.
-2. **Settings → Devices & Services → Add Integration**.
-3. Search **Generac MobileLink**.
-4. Enter your **MyGenerac** email and password (the same credentials
-   you use in the MobileLink mobile app).
-5. Submit.
-6. **If your account has two-factor authentication**, a second screen
-   asks for the verification code sent by text (SMS), your authenticator
-   app, or email. Enter the most recent code and submit. (Push-prompt or
-   security-key 2FA can't be completed here — approve the login in the
-   MobileLink app, or switch your Generac/ecobee account to code-based
-   2FA, then retry.)
-7. Within ~30 s, the integration creates entities for each generator and
-   tank monitor on the account.
+When sharing logs, remove credentials, access tokens, refresh tokens, callback
+URLs, cookies, addresses, serial numbers, and other personal generator data.
 
-Wrong credentials surface as **"Invalid email or password"** on the
-form. A wrong or expired 2FA code surfaces as **"That code was incorrect
-or has expired"** on the code screen — retry with the most recent code.
-Anything else surfaces as **"Unexpected error"** — check the HA log for
-the actual exception.
+## Standalone Test
 
-### What entities you get
+The repository includes a PowerShell check that exercises the Auth0/DPoP login
+and a live API read without installing anything into Home Assistant:
 
-Per generator (sensor + binary_sensor):
+```powershell
+./scripts/Test-GeneracDpop.ps1
+```
 
-- `sensor.generac_<id>_status` — e.g. `Ready`, `Running`, `Exercising`,
-  `Stopped`
-- `sensor.generac_<id>_battery_voltage` — typically 12.5–13.5 V on a
-  healthy unit
-- `sensor.generac_<id>_run_time`, `protection_time`, `last_seen`,
-  `connection_time`, `activation_date`
-- `sensor.generac_<id>_dealer_email`, `dealer_name`, `dealer_phone`,
-  `address`, `serial_number`, `model_number`, `device_ssid`, `panel_id`
-- `binary_sensor.generac_<id>_is_connected`, `is_connecting`,
-  `has_maintenance_alert`, `has_warning`
+Credentials can be entered interactively or supplied through `GENERAC_USER` and
+`GENERAC_PASS` environment variables.
 
-Per propane tank monitor: similar set covering capacity, fuel level,
-fuel type, orientation, last reading date, battery level.
+For repository validation:
 
-There's also a `weather` entity per generator location (forecast at the
-generator address) and an `image` entity exposing the device thumbnail.
+```powershell
+python -m unittest discover -s tests -v
+pre-commit run --all-files
+```
 
-## Known gotchas
+## Credits and License
 
-- **Auth0 consent prompts.** Some MyGenerac accounts trigger an Auth0
-  Forms consent / T&C prompt on first OAuth login. This fork includes a
-  `_handle_custom_prompt()` handler that POSTs `action=default` to
-  clear them automatically (handles up to 3 chained prompts before
-  giving up). If the handler can't clear the prompt, complete the
-  pending form interactively in the MobileLink mobile app once — Auth0
-  remembers the acknowledgement account-wide for subsequent OAuth flows
-  from any client.
-- **Two-factor authentication.** Code-based factors (SMS, authenticator
-  app, email) are handled in-flow — setup pauses for the code and
-  resumes once you submit it. Push-notification, security-key (WebAuthn),
-  and voice-call factors can't be completed headlessly; approve the login
-  in the MobileLink app, or switch your account to a code factor. MFA
-  support is new in this fork — if a code-based factor doesn't complete,
-  open an issue with the `Generac auth: step=` lines from your HA log.
-- **Refresh token after password change.** Rotating your MyGenerac
-  password invalidates the stored refresh token. HA surfaces this as a
-  `Reauth` notification — click it and re-enter the new password. No
-  reinstall needed.
-- **Conservative poll interval.** `iot_class: cloud_polling` with
-  `DEFAULT_SCAN_INTERVAL = 900 s` (15 min). The MobileLink cloud
-  doesn't push faster than this, and the API is rate-limited per
-  account. Don't bump it without monitoring for 429s.
-- **`requirements` pin.** `manifest.json` pins
-  `dacite==1.9.2` and `cryptography>=41`. The upstream PR's `setup.cfg`
-  pins `dacite==1.9.2`; the manifest is the file HA reads at install
-  time, so that's the source of truth here.
-
-## Differences from upstream PR #267
-
-On top of `pr3-email-password-auth` HEAD (8c550ca):
-
-1. **`auth.py: _handle_custom_prompt()`** — handles Auth0 Forms prompts
-   (T&C / consent / privacy updates) that some MyGenerac accounts get
-   to clear once. POSTs `state=…&action=default` directly to
-   `/u/custom-prompt/<id>`. Loops up to 3 chained prompts before giving
-   up. The React-rendered page has no static `<form>`, but the POST
-   endpoint and body convention are stable across Auth0 Forms
-   instances.
-2. **`auth.py: WARNING-level step= logging`** — emits a step marker at
-   each redirect to make first-time login debuggable from the HA log.
-3. **MFA support (`auth.py: GeneracLoginFlow` + `config_flow.py:
-   async_step_mfa`)** — handles Auth0 one-time-code factors (SMS /
-   authenticator app / email): the login pauses at the challenge screen,
-   HA prompts for the code, and `submit_mfa_code()` resumes to finish.
-   Push / WebAuthn security-key / voice factors can't be driven
-   headlessly and surface an actionable error. Upstream PR #267 has no
-   MFA handling.
-4. **`manifest.json: version`** — `0.5.4-anderson-fork` to differentiate
-   from upstream releases.
-
-The `_handle_custom_prompt` patch is a candidate to push back to PR
-#267 — benefits any user whose account gets a similar prompt.
-
-## Upstreaming progress
-
-Subscribe to [`binarydev/ha-generac` PR #267][pr267]. When it merges
-and a release is cut, follow the upstream-tracking steps in this repo's
-`UPSTREAM.md` (TODO) to migrate cleanly back to upstream — refresh
-tokens are forward-compatible, so you won't need to re-authenticate.
-
-## License
-
-[MIT][license] — preserved verbatim from `binarydev/ha-generac`.
-
-Copyright (c) 2025 binarydev.
-Modifications copyright (c) 2026 Anderson family / pjordanandrsn,
-based on PR #267 by sslivins.
-
-## Acknowledgments
-
-- [`@binarydev`][binarydev] — original `ha-generac` integration and
-  ongoing upstream maintenance.
-- [`@sslivins`][sslivins] — auth rewrite ([PR #267][pr267]) that this
-  fork is built on.
-- [Jeff Terrace][jterrace] — for the [GenMon + Raspberry Pi local
-  alternative blog post][genmon-blog] linked from the upstream README.
-
-[upstream]: https://github.com/binarydev/ha-generac
-[pr267]: https://github.com/binarydev/ha-generac/pull/267
-[binarydev]: https://github.com/binarydev
-[sslivins]: https://github.com/sslivins
-[jterrace]: https://github.com/jterrace
-[genmon-blog]: https://blog.jeffterrace.com/2025/10/free-from-generac-with-genmon.html
-[generac-migration]: https://support.generac.com/s/article/Mobile-Link-Migration
-[license]: ./LICENSE
-[hacs]: https://github.com/hacs/integration
-[hacs-badge]: https://img.shields.io/badge/HACS-Default-blue.svg
-[validate-workflow]: https://github.com/pjordanandrsn/ha-generac/actions/workflows/validate.yaml
-[validate-badge]: https://github.com/pjordanandrsn/ha-generac/actions/workflows/validate.yaml/badge.svg
+This project is distributed under the MIT license. It builds on the work in
+[pjordanandrsn/ha-generac](https://github.com/pjordanandrsn/ha-generac) and the
+upstream [ha-generac](https://github.com/binarydev/ha-generac) project.

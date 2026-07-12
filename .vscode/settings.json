@@ -1,0 +1,23 @@
+{
+  "python.linting.pylintEnabled": false,
+  "python.linting.enabled": true,
+  "files.associations": {
+    "*.yaml": "home-assistant"
+  },
+  "[python]": {
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "ms-python.black-formatter"
+  },
+  "python.formatting.provider": "none",
+  "python.linting.flake8Enabled": true,
+  "[json]": {
+    "editor.quickSuggestions": {
+      "strings": true
+    },
+    "editor.suggest.insertMode": "replace",
+    "editor.formatOnSave": false
+  },
+  "json.format.enable": false,
+
+  "python.analysis.typeCheckingMode": "basic"
+}

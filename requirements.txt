@@ -1,0 +1,8 @@
+aiohttp==3.11.11
+flake8==6.1.0
+cryptography>=41
+dacite==1.9.2
+pre-commit==4.0.1
+reorder-python-imports==3.14.0
+homeassistant==2024.12.5
+voluptuous==0.15.2

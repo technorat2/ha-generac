@@ -1,0 +1,14 @@
+__pycache__
+pythonenv*
+.python-version
+.coverage
+venv
+.venv
+.venv-generac-test
+.apk-analysis
+.generac_api_test.py
+.generac_pkce_test.py
+.generac_pkce_state.json
+
+/config/*
+!/config/configuration.yaml

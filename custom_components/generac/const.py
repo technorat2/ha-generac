@@ -1,17 +1,16 @@
-"""Constants for generac."""
-
+"""Constants for Generac MobileLink."""
 # Base component constants
-NAME = "generac"
+NAME = "Generac MobileLink"
 DOMAIN = "generac"
 DOMAIN_DATA = f"{DOMAIN}_data"
-VERSION = "0.0.0"
+VERSION = "0.5.5"
 
 ATTRIBUTION = (
     "Data provided by https://app.mobilelinkgen.com/api. "
-    "This is reversed engineered. Heavily inspired by "
+    "This is reverse engineered. Heavily inspired by "
     "https://github.com/digitaldan/openhab-addons/blob/generac-2.0/bundles/org.openhab.binding.generacmobilelink/README.md"
 )
-ISSUE_URL = "https://github.com/binarydev/ha-generac/issues"
+ISSUE_URL = "https://github.com/technorat2/ha-generac/issues"
 
 # Device types
 # 0 = generator

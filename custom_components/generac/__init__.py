@@ -2,9 +2,8 @@
 Custom integration to integrate generac with Home Assistant.
 
 For more details about this integration, please refer to
-https://github.com/binarydev/ha-generac
+https://github.com/technorat2/ha-generac
 """
-
 import logging
 
 from homeassistant.config_entries import ConfigEntry
@@ -86,8 +85,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Handle removal of an entry."""
     unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unloaded:
-        # Defensive default: if a previous reload already popped the
-        # coordinator (e.g. mid-reconfigure race), don't KeyError.
+        # Defensive default: a mid-reconfigure unload must not raise KeyError.
         hass.data[DOMAIN].pop(entry.entry_id, None)
     return unloaded
 
