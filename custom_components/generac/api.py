@@ -25,6 +25,7 @@ from .models import ApparatusDetail
 from .models import Item
 
 REQUEST_TIMEOUT = aiohttp.ClientTimeout(total=45, connect=10, sock_read=30)
+REQUEST_RETRY_DELAY = 1
 
 _LOGGER: logging.Logger = logging.getLogger(__package__)
 
@@ -175,6 +176,13 @@ class GeneracApiClient:
             except SessionExpiredException:
                 raise
             except asyncio.TimeoutError as ex:
-                raise IOError(f"GET {url} timed out") from ex
+                if attempt == 0:
+                    _LOGGER.warning(
+                        "Mobile Link request timed out for %s; retrying once",
+                        endpoint,
+                    )
+                    await asyncio.sleep(REQUEST_RETRY_DELAY)
+                    continue
+                raise IOError(f"GET {url} timed out after retry") from ex
             except Exception as ex:
                 raise IOError(f"GET {url} failed: {type(ex).__name__}: {ex}") from ex
